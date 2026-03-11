@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee Interactions - DCRM System</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        .interactions-layout {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 24px;
+            height: calc(100vh - 180px);
+        }
+
+        .contacts-panel {
+            background: white;
+            border-radius: var(--border-radius-lg);
+            border: 1px solid var(--border-light);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .contacts-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border-light);
+            background: #FAFAFA;
+        }
+
+        .contacts-list {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .contact-item {
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            transition: background 0.2s;
+            border-bottom: 1px solid #FAFAFA;
+        }
+
+        .contact-item:hover {
+            background: #F8FAFC;
+        }
+
+        .contact-item.active {
+            background: #EFF6FF;
+            border-left: 4px solid var(--primary);
+        }
+
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        .contact-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .contact-name {
+            display: block;
+            font-weight: 500;
+            color: var(--text-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .contact-status {
+            display: block;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .chat-panel {
+            background: white;
+            border-radius: var(--border-radius-lg);
+            border: 1px solid var(--border-light);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .chat-header {
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--border-light);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #FAFAFA;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            background: #F8FAFC;
+        }
+
+        .message {
+            max-width: 70%;
+            padding: 10px 16px;
+            border-radius: 12px;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .message.sent {
+            align-self: flex-end;
+            background: var(--primary);
+            color: white;
+            border-bottom-right-radius: 2px;
+        }
+
+        .message.received {
+            align-self: flex-start;
+            background: white;
+            color: var(--text-primary);
+            border: 1px solid var(--border-light);
+            border-bottom-left-radius: 2px;
+        }
+
+        .chat-input-area {
+            padding: 20px;
+            border-top: 1px solid var(--border-light);
+            background: white;
+        }
+
+        .input-wrapper {
+            display: flex;
+            gap: 12px;
+            background: #F1F5F9;
+            border-radius: var(--border-radius-md);
+            padding: 8px 12px;
+            border: 1px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .input-wrapper:focus-within {
+            background: white;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .input-wrapper textarea {
+            flex: 1;
+            border: none;
+            background: transparent;
+            resize: none;
+            outline: none;
+            padding: 8px 0;
+            font-size: 14px;
+            height: 40px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app-wrapper">
+        {% include "components/sidebar.html" %}
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="page-header">
+                <h1>Interactions</h1>
+                <p>Communicate with maintenance personnel and expert advisors</p>
+            </div>
+
+            <div class="interactions-layout">
+                <!-- Contacts Panel -->
+                <div class="contacts-panel">
+                    <div class="contacts-header">
+                        <strong style="font-size: 15px;">Conversations</strong>
+                    </div>
+                    <div class="contacts-list" id="contactsList">
+                        {% if employees %}
+                        <div
+                            style="padding: 10px 20px; font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 600; letter-spacing: 0.5px;">
+                            All Personnel</div>
+                        {% for emp in employees %}
+                        <div class="contact-item"
+                            onclick="loadConversation('{{ emp.id }}', '{{ emp.full_name or emp.username }}', this)">
+                            <div class="avatar">{{ (emp.full_name or emp.username)[0]|upper }}</div>
+                            <div class="contact-info">
+                                <span class="contact-name">{{ emp.full_name or emp.username }}</span>
+                                <span class="contact-status">@{{ emp.username }}</span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                        {% endif %}
+
+                        {% if conversations %}
+                        <div
+                            style="padding: 20px 20px 10px; font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 600; letter-spacing: 0.5px;">
+                            Recent Chats</div>
+                        {% for conv in conversations %}
+                        <div class="contact-item"
+                            onclick="loadConversation('{{ conv.user_id }}', '{{ conv.full_name or conv.username }}', this)">
+                            <div class="avatar" style="background: var(--secondary);">{{ (conv.full_name or
+                                conv.username)[0]|upper }}</div>
+                            <div class="contact-info">
+                                <span class="contact-name">{{ conv.full_name or conv.username }}</span>
+                                <span class="contact-status"
+                                    style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{
+                                    conv.last_message[:30] }}...</span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Chat Panel -->
+                <div class="chat-panel">
+                    <div id="chatHeader" class="chat-header">
+                        <span style="font-weight: 600; color: var(--text-primary);">Select a contact to begin
+                            messaging</span>
+                    </div>
+
+                    <div id="chatMessages" class="chat-messages">
+                        <div style="text-align: center; margin: auto; max-width: 300px; padding: 40px;">
+                            <div
+                                style="background: #F1F5F9; width: 64px; height: 64px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px;">
+                                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)"
+                                    stroke-width="1.5">
+                                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                                </svg>
+                            </div>
+                            <h3 style="font-size: 16px; margin-bottom: 8px;">No Discussion Active</h3>
+                            <p style="font-size: 13px; color: var(--text-muted);">Choose an employee from the left panel
+                                to start or resume a conversation.</p>
+                        </div>
+                    </div>
+
+                    <div id="chatInputArea" class="chat-input-area" style="display: none;">
+                        <div class="input-wrapper">
+                            <textarea id="messageInput" placeholder="Write a message..."></textarea>
+                            <button class="btn btn-primary" onclick="sendMessage()" style="padding: 0 16px;">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2.5">
+                                    <line x1="22" y1="2" x2="11" y2="13"></line>
+                                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        let currentReceiverId = null;
+
+        async function loadConversation(userId, userName, element) {
+            // Update active state
+            document.querySelectorAll('.contact-item').forEach(item => item.classList.remove('active'));
+            element.classList.add('active');
+
+            currentReceiverId = userId;
+            document.getElementById('chatHeader').innerHTML = `<span style="font-weight: 600;">Chatting with ${userName}</span>`;
+            document.getElementById('chatInputArea').style.display = 'block';
+            document.getElementById('chatMessages').innerHTML = '<div class="spinner" style="margin: auto;"></div>';
+
+            try {
+                const response = await fetch(`/api/interactions/conversation/${userId}`);
+                const data = await response.json();
+
+                document.getElementById('chatMessages').innerHTML = '';
+                if (response.ok && data.messages && data.messages.length > 0) {
+                    data.messages.forEach(msg => {
+                        addMessage(msg.message, msg.is_sender);
+                    });
+                } else {
+                    addMessage(`This is the beginning of your conversation with ${userName}.`, false);
+                }
+            } catch (error) {
+                document.getElementById('chatMessages').innerHTML = '<div style="color: var(--danger); text-align: center; padding: 20px;">Failed to load messages</div>';
+            }
+        }
+
+        function addMessage(text, isSender) {
+            const messagesDiv = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isSender ? 'sent' : 'received'}`;
+            messageDiv.textContent = text;
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        async function sendMessage() {
+            if (!currentReceiverId) return;
+
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+
+            if (!message) return;
+
+            addMessage(message, true);
+            input.value = '';
+
+            try {
+                const response = await fetch('/api/interactions/send', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ receiver_id: currentReceiverId, message })
+                });
+
+                if (!response.ok) {
+                    alert('Message failed to send.');
+                }
+            } catch (error) {
+                alert('Connection error.');
+            }
+        }
+
+        document.getElementById('messageInput')?.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+    </script>
+    <script src="{{ url_for('static', filename='js/sidebar-toggle.js') }}"></script>
+</body>
+
+</html>

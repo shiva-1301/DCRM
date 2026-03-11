@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee Interactions - DCRM System</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        .interactions-container {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 20px;
+            height: 600px;
+        }
+
+        .conversations-list {
+            background: white;
+            border-radius: 12px;
+            border: 1px solid #e5e7eb;
+            overflow-y: auto;
+        }
+
+        .conversation-item {
+            padding: 16px;
+            border-bottom: 1px solid #e5e7eb;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .conversation-item:hover {
+            background: #f9fafb;
+        }
+
+        .conversation-item.active {
+            background: #f3f4f6;
+        }
+
+        .chat-area {
+            display: flex;
+            flex-direction: column;
+            background: white;
+            border-radius: 12px;
+            border: 1px solid #e5e7eb;
+            overflow: hidden;
+        }
+
+        .chat-header {
+            padding: 16px;
+            border-bottom: 1px solid #e5e7eb;
+            background: #f9fafb;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #f9fafb;
+        }
+
+        .message {
+            margin-bottom: 12px;
+            display: flex;
+        }
+
+        .message.sent {
+            justify-content: flex-end;
+        }
+
+        .message-bubble {
+            max-width: 70%;
+            padding: 10px 14px;
+            border-radius: 12px;
+        }
+
+        .message.sent .message-bubble {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .message.received .message-bubble {
+            background: white;
+            color: #374151;
+            border: 1px solid #e5e7eb;
+        }
+
+        .chat-input-area {
+            padding: 16px;
+            border-top: 1px solid #e5e7eb;
+            background: white;
+        }
+
+        .chat-input-wrapper {
+            display: flex;
+            gap: 12px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app-wrapper">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <svg class="sidebar-logo" viewBox="0 0 40 40" fill="none">
+                    <rect width="40" height="40" rx="8" fill="url(#gradient)" />
+                    <path d="M20 10 L30 20 L20 30 L10 20 Z" fill="white" opacity="0.9" />
+                    <circle cx="20" cy="20" r="4" fill="white" />
+                    <defs>
+                        <linearGradient id="gradient" x1="0" y1="0" x2="40" y2="40">
+                            <stop offset="0%" stop-color="#667eea" />
+                            <stop offset="100%" stop-color="#764ba2" />
+                        </linearGradient>
+                    </defs>
+                </svg>
+                <span class="sidebar-title">DCRM System</span>
+            </div>
+
+            <nav class="sidebar-nav">
+                <a href="{{ url_for('dashboard.index') }}" class="nav-item">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                        <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                    </svg>
+                    Dashboard
+                </a>
+                <a href="{{ url_for('dashboard.my_history') }}" class="nav-item">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 8v4l3 3m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"></path>
+                    </svg>
+                    My History
+                </a>
+                <a href="{{ url_for('sos.sos_page') }}" class="nav-item">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 2L2 7L12 12L22 7L12 2Z"></path>
+                        <path d="M2 17L12 22L22 17"></path>
+                        <path d="M2 12L12 17L22 12"></path>
+                    </svg>
+                    SOS Request
+                </a>
+                <a href="{{ url_for('chatbot.field_advisor') }}" class="nav-item">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                    </svg>
+                    Field Advisor
+                </a>
+                <a href="{{ url_for('interaction.interactions') }}" class="nav-item active">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M17 8h2a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2h-2v4l-4-4H9a1.994 1.994 0 0 1-1.414-.586m0 0L11 14h4a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2v4l.586-.586z"></path>
+                    </svg>
+                    Interactions
+                </a>
+                <a href="{{ url_for('dashboard.user_guide') }}" class="nav-item">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="M12 16v-4M12 8h.01"></path>
+                    </svg>
+                    User Guide
+                </a>
+                {% if user.is_admin() %}
+                <a href="{{ url_for('admin.dashboard') }}" class="nav-item">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path
+                            d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z">
+                        </path>
+                    </svg>
+                    Admin Panel
+                </a>
+                {% endif %}
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="user-profile">
+                    <div class="user-avatar">
+                        {{ user.full_name[0]|upper if user.full_name else user.username[0]|upper }}
+                    </div>
+                    <div class="user-info">
+                        <div class="user-name">{{ user.full_name or user.username }}</div>
+                        <div class="user-role">{{ user.role }}</div>
+                    </div>
+                </div>
+                <a href="{{ url_for('auth.logout') }}" class="btn btn-secondary btn-small" style="width: 100%;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        style="margin-right: 8px;">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                        <polyline points="16 17 21 12 16 7"></polyline>
+                        <line x1="21" y1="12" x2="9" y2="12"></line>
+                    </svg>
+                    Logout
+                </a>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="card">
+                <h2>Employee Interactions</h2>
+                <p style="color: #6b7280; margin-bottom: 24px;">Select an employee to chat with and resolve issues</p>
+
+                <div class="interactions-container">
+                    <div class="conversations-list" id="conversationsList">
+                        <div style="padding: 16px; border-bottom: 1px solid #e5e7eb; background: #f9fafb;">
+                            <strong style="color: #374151;">Select Employee to Chat</strong>
+                        </div>
+                        {% if employees %}
+                        {% for emp in employees %}
+                        <div class="conversation-item" onclick="loadConversation('{{ emp.id }}', '{{ emp.full_name or emp.username }}')">
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <div style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #667eea, #764ba2); display: flex; align-items: center; justify-content: center; color: white; font-weight: 700;">
+                                    {{ emp.full_name[0]|upper if emp.full_name else emp.username[0]|upper }}
+                                </div>
+                                <div>
+                                    <strong>{{ emp.full_name or emp.username }}</strong>
+                                    <p style="font-size: 12px; color: #6b7280; margin: 2px 0 0 0;">@{{ emp.username }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                        {% else %}
+                        <p style="text-align: center; color: #6b7280; padding: 40px;">No other employees available</p>
+                        {% endif %}
+                        
+                        {% if conversations %}
+                        <div style="padding: 16px; border-top: 2px solid #e5e7eb; border-bottom: 1px solid #e5e7eb; background: #f9fafb; margin-top: 16px;">
+                            <strong style="color: #374151;">Recent Conversations</strong>
+                        </div>
+                        {% for conv in conversations %}
+                        <div class="conversation-item" onclick="loadConversation('{{ conv.user_id }}', '{{ conv.full_name or conv.username }}')">
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <div style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #667eea, #764ba2); display: flex; align-items: center; justify-content: center; color: white; font-weight: 700;">
+                                    {{ conv.full_name[0]|upper if conv.full_name else conv.username[0]|upper }}
+                                </div>
+                                <div style="flex: 1;">
+                                    <strong>{{ conv.full_name or conv.username }}</strong>
+                                    <p style="font-size: 12px; color: #6b7280; margin: 2px 0 0 0;">{{ conv.last_message[:50] if conv.last_message else 'No messages yet' }}...</p>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                        {% endif %}
+                    </div>
+
+                    <div class="chat-area">
+                        <div class="chat-header" id="chatHeader">
+                            <strong>Select an employee to start chatting and resolve issues</strong>
+                        </div>
+                        <div class="chat-messages" id="chatMessages">
+                            <div style="text-align: center; padding: 60px 20px; color: #6b7280;">
+                                <svg width="64" height="64" viewBox="0 0 64 64" fill="none" style="margin: 0 auto 20px; opacity: 0.3;">
+                                    <path d="M17 16h30a2 2 0 0 1 2 2v20a2 2 0 0 1-2 2h-2v8l-8-8H17a2 2 0 0 1-2-2V18a2 2 0 0 1 2-2z" stroke="currentColor" stroke-width="2"/>
+                                </svg>
+                                <h3 style="margin-bottom: 8px; color: #374151;">No conversation selected</h3>
+                                <p>Choose an employee from the list to start a conversation and get help with issues you're unable to resolve.</p>
+                            </div>
+                        </div>
+                        <div class="chat-input-area" id="chatInputArea" style="display: none;">
+                            <div class="chat-input-wrapper">
+                                <textarea id="messageInput" rows="2" placeholder="Type your message to get help..."></textarea>
+                                <button class="btn btn-primary" onclick="sendMessage()">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <line x1="22" y1="2" x2="11" y2="13"></line>
+                                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Toast Notification -->
+        <div class="toast" id="toast"></div>
+    </div>
+
+    <script>
+        let currentReceiverId = null;
+
+        async function loadConversation(userId, userName) {
+            currentReceiverId = userId;
+            document.getElementById('chatHeader').innerHTML = `<strong>Chatting with ${userName}</strong>`;
+            document.getElementById('chatInputArea').style.display = 'block';
+            document.getElementById('chatMessages').innerHTML = '';
+
+            try {
+                const response = await fetch(`/api/interactions/conversation/${userId}`);
+                const data = await response.json();
+                
+                if (response.ok && data.messages && data.messages.length > 0) {
+                    data.messages.forEach(msg => {
+                        addMessage(msg.message, msg.is_sender);
+                    });
+                } else {
+                    // No messages yet, show welcome message
+                    addMessage(`Hello! I'm here to help you resolve any issues. How can I assist you?`, false);
+                }
+            } catch (error) {
+                console.error('Error loading conversation:', error);
+                addMessage('Error loading conversation. Please try again.', false);
+            }
+        }
+
+        function addMessage(text, isSender) {
+            const messagesDiv = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isSender ? 'sent' : 'received'}`;
+            messageDiv.innerHTML = `<div class="message-bubble">${text}</div>`;
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        async function sendMessage() {
+            if (!currentReceiverId) return;
+            
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+            
+            if (!message) return;
+
+            addMessage(message, true);
+            input.value = '';
+
+            try {
+                const response = await fetch('/api/interactions/send', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ receiver_id: currentReceiverId, message })
+                });
+
+                const data = await response.json();
+                if (!response.ok) {
+                    showToast(data.error || 'Failed to send message', 'danger');
+                }
+            } catch (error) {
+                showToast('Error sending message', 'danger');
+            }
+        }
+
+        document.getElementById('messageInput')?.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        function showToast(message, type) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = `toast show ${type}`;
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+    </script>
+</body>
+
+</html>
+

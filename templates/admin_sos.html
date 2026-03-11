@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin SOS Management - DCRM System</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <style>
+        .sos-management-layout {
+            display: flex;
+            flex-direction: column;
+            gap: 32px;
+        }
+
+        /* SOS Request Cards */
+        .sos-request-card {
+            background: white;
+            border: 1px solid var(--border-light);
+            border-radius: var(--border-radius-lg);
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            box-shadow: var(--shadow-sm);
+            transition: all 0.2s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .sos-request-card:hover {
+            box-shadow: var(--shadow-md);
+        }
+
+        .sos-request-card.pending {
+            border-left: 4px solid var(--warning);
+        }
+
+        .sos-request-card.resolved {
+            border-left: 4px solid var(--success);
+        }
+
+        .sos-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+        }
+
+        .sos-type h3 {
+            font-size: 18px;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .sos-meta {
+            display: flex;
+            gap: 16px;
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        .sos-meta-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .sos-description {
+            background: #F8FAFC;
+            border-radius: var(--border-radius-md);
+            padding: 16px;
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+            border: 1px solid var(--border-light);
+        }
+
+        .sos-card-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 16px;
+            border-top: 1px solid var(--border-light);
+        }
+
+        .requester-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .req-avatar {
+            width: 36px;
+            height: 36px;
+            background: var(--secondary);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .req-details p {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .req-details span {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app-wrapper">
+        {% include "components/sidebar.html" %}
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="page-header">
+                <div>
+                    <h1>SOS Management</h1>
+                    <p>Monitor and resolve field personnel emergencies</p>
+                </div>
+            </div>
+
+            <div class="sos-management-layout">
+                <!-- Stats Overview -->
+                {% set pending_count = sos_requests|selectattr('status', 'equalto', 'pending')|list|length %}
+                {% set resolved_count = sos_requests|selectattr('status', 'equalto', 'resolved')|list|length %}
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: rgba(245, 158, 11, 0.1); color: var(--warning);">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path
+                                    d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z">
+                                </path>
+                            </svg>
+                        </div>
+                        <div class="stat-content">
+                            <span class="stat-label">Active Alerts</span>
+                            <span class="stat-value">{{ pending_count }}</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: rgba(16, 185, 129, 0.1); color: var(--success);">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                            </svg>
+                        </div>
+                        <div class="stat-content">
+                            <span class="stat-label">Resolved Tickets</span>
+                            <span class="stat-value">{{ resolved_count }}</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: rgba(30, 41, 59, 0.1); color: var(--secondary);">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                <polyline points="14 2 14 8 20 8"></polyline>
+                                <line x1="16" y1="13" x2="8" y2="13"></line>
+                                <line x1="16" y1="17" x2="8" y2="17"></line>
+                                <polyline points="10 9 9 9 8 9"></polyline>
+                            </svg>
+                        </div>
+                        <div class="stat-content">
+                            <span class="stat-label">Total History</span>
+                            <span class="stat-value">{{ sos_requests|length }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Requests List -->
+                <div id="sosList" style="display: flex; flex-direction: column; gap: 20px;">
+                    {% if sos_requests %}
+                    {% for sos in sos_requests %}
+                    <div class="sos-request-card {{ sos.status }}">
+                        <div class="sos-card-header">
+                            <div class="sos-type">
+                                <h3>
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2.5">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                                    </svg>
+                                    {{ sos.problem_type }}
+                                </h3>
+                                <div class="sos-meta">
+                                    <div class="sos-meta-item">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                                            stroke="currentColor" stroke-width="2">
+                                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                            <line x1="16" y1="2" x2="16" y2="6"></line>
+                                            <line x1="8" y1="2" x2="8" y2="6"></line>
+                                            <line x1="3" y1="10" x2="21" y2="10"></line>
+                                        </svg>
+                                        {{ sos.created_at.strftime('%B %d, %Y') if sos.created_at else 'N/A' }}
+                                    </div>
+                                    <div class="sos-meta-item">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                                            stroke="currentColor" stroke-width="2">
+                                            <circle cx="12" cy="12" r="10"></circle>
+                                            <polyline points="12 6 12 12 16 14"></polyline>
+                                        </svg>
+                                        {{ sos.created_at.strftime('%I:%M %p') if sos.created_at else '' }}
+                                    </div>
+                                </div>
+                            </div>
+                            <span class="status-badge {{ sos.status }}">{{ sos.status|title }}</span>
+                        </div>
+
+                        <div class="sos-description">
+                            {{ sos.description }}
+                        </div>
+
+                        <div class="sos-card-footer">
+                            <div class="requester-info">
+                                <div class="req-avatar">{{ (sos.full_name or sos.username)[0]|upper }}</div>
+                                <div class="req-details">
+                                    <p>{{ sos.full_name or sos.username }}</p>
+                                    <span>@{{ sos.username }}</span>
+                                </div>
+                            </div>
+
+                            {% if sos.status == 'pending' %}
+                            <button class="btn btn-primary" onclick="resolveSOS('{{ sos._id }}', this)">Mark as
+                                Resolved</button>
+                            {% else %}
+                            <div
+                                style="font-size: 13px; color: var(--text-muted); display: flex; align-items: center; gap: 6px;">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2.5" style="color: var(--success);">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                                Resolved on {{ sos.resolved_at.strftime('%m/%d/%Y %I:%M %p') if sos.resolved_at else
+                                'N/A' }}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                    {% else %}
+                    <div
+                        style="text-align: center; padding: 100px 20px; background: white; border-radius: 16px; border: 1px solid var(--border-light);">
+                        <div
+                            style="background: #F1F5F9; width: 64px; height: 64px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px;">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)"
+                                stroke-width="1.5">
+                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                            </svg>
+                        </div>
+                        <h3 style="font-size: 18px; color: var(--text-primary); margin-bottom: 8px;">No SOS Requests
+                        </h3>
+                        <p style="color: var(--text-muted);">All field issues have been successfully resolved.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast"></div>
+
+    <script>
+        async function resolveSOS(sosId, button) {
+            if (!confirm('Mark this SOS request as resolved?')) return;
+
+            const originalText = button.textContent;
+            button.disabled = true;
+            button.textContent = 'Resolving...';
+
+            try {
+                const response = await fetch(`/api/sos/resolve/${sosId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                if (response.ok) {
+                    showToast('✅ SOS request resolved');
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    const data = await response.json();
+                    showToast('❌ ' + (data.error || 'Failed to resolve'), 'danger');
+                    button.disabled = false;
+                    button.textContent = originalText;
+                }
+            } catch (error) {
+                showToast('❌ Connection error', 'danger');
+                button.disabled = false;
+                button.textContent = originalText;
+            }
+        }
+
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = `toast show ${type}`;
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+    </script>
+    <script src="{{ url_for('static', filename='js/sidebar-toggle.js') }}"></script>
+</body>
+
+</html>

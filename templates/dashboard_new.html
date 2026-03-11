@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - DCRM System</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+</head>
+
+<body>
+    <div class="app-wrapper">
+        {% include "components/sidebar.html" %}
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="page-header">
+                <h1>Dashboard Overview</h1>
+                <p>Real-time system analytics and fault detection insights</p>
+            </div>
+
+            <div class="dashboard-container">
+                <!-- Stats Cards -->
+                <div class="stats-grid">
+                    <div class="stat-card primary">
+                        <div class="stat-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+                            </svg>
+                        </div>
+                        <div class="stat-content">
+                            <h3>Total Tests</h3>
+                            <p class="stat-value" id="totalTests">0</p>
+                            <p class="stat-label">System wide</p>
+                        </div>
+                    </div>
+                    <div class="stat-card success">
+                        <div class="stat-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                            </svg>
+                        </div>
+                        <div class="stat-content">
+                            <h3>Average Health</h3>
+                            <p class="stat-value" id="avgHealth">0%</p>
+                            <p class="stat-label">Current operational status</p>
+                        </div>
+                    </div>
+                    <div class="stat-card warning">
+                        <div class="stat-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path
+                                    d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z">
+                                </path>
+                                <line x1="12" y1="9" x2="12" y2="13"></line>
+                                <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                            </svg>
+                        </div>
+                        <div class="stat-content">
+                            <h3>Main Faults</h3>
+                            <p class="stat-value" id="mainFaults">0</p>
+                            <p class="stat-label">Pending attention</p>
+                        </div>
+                    </div>
+                    <div class="stat-card danger">
+                        <div class="stat-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <line x1="12" y1="8" x2="12" y2="12"></line>
+                                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                            </svg>
+                        </div>
+                        <div class="stat-content">
+                            <h3>Arc Faults</h3>
+                            <p class="stat-value" id="arcFaults">0</p>
+                            <p class="stat-label">Critical priority</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts -->
+                <div class="charts-grid">
+                    <div class="chart-card">
+                        <div class="card-header">
+                            <h2>Health vs Spikes Trend</h2>
+                            <p class="card-subtitle">Historical performance analysis</p>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="trendChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-card">
+                        <div class="card-header">
+                            <h2>Fault Distribution</h2>
+                            <p class="card-subtitle">Relative breakdown of fault types</p>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="pieChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Tests -->
+                <div class="results-card">
+                    <div class="card-header">
+                        <h2>Recent Activity</h2>
+                        <p class="card-subtitle">Latest diagnostic tests and predictions</p>
+                    </div>
+                    <div class="results-table-container">
+                        <table class="results-table">
+                            <thead>
+                                <tr>
+                                    <th>Filename</th>
+                                    <th>Prediction</th>
+                                    <th>Confidence</th>
+                                    <th>Date & Time</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recentTestsBody">
+                                <tr>
+                                    <td colspan="4" class="empty-state">
+                                        <div class="spinner"></div>
+                                        <p class="mt-2 text-muted">Loading analytics...</p>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Fetch dashboard analytics
+        fetch('/api/dashboard/analytics')
+            .then(response => response.json())
+            .then(data => {
+                // Update stats
+                document.getElementById('totalTests').textContent = data.total_tests;
+                document.getElementById('avgHealth').textContent = data.avg_health + '%';
+                document.getElementById('mainFaults').textContent = data.fault_distribution.main;
+                document.getElementById('arcFaults').textContent = data.fault_distribution.arc;
+
+                // Create trend chart
+                const trendCtx = document.getElementById('trendChart').getContext('2d');
+                const dates = data.health_trend.map(item => new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+                const healthData = data.health_trend.map(item => item.count);
+                const spikesData = data.spikes_trend.map(item => item.count);
+
+                const chartType = dates.length === 1 ? 'bar' : 'line';
+
+                new Chart(trendCtx, {
+                    type: chartType,
+                    data: {
+                        labels: dates,
+                        datasets: [{
+                            label: 'Healthy Tests',
+                            data: healthData,
+                            borderColor: '#10B981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                            tension: 0.4,
+                            borderWidth: 2,
+                            fill: true
+                        }, {
+                            label: 'Fault Spikes',
+                            data: spikesData,
+                            borderColor: '#EF4444',
+                            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                            tension: 0.4,
+                            borderWidth: 2,
+                            fill: true
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    usePointStyle: true,
+                                    padding: 20,
+                                    font: { size: 12 }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                grid: { color: '#F1F5F9' },
+                                ticks: { stepSize: 1, font: { size: 11 } }
+                            },
+                            x: {
+                                grid: { display: false },
+                                ticks: { font: { size: 11 } }
+                            }
+                        }
+                    }
+                });
+
+                // Create pie chart
+                const pieCtx = document.getElementById('pieChart').getContext('2d');
+                new Chart(pieCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Healthy', 'Main Fault', 'Arc Fault'],
+                        datasets: [{
+                            data: [
+                                data.fault_distribution.healthy,
+                                data.fault_distribution.main,
+                                data.fault_distribution.arc
+                            ],
+                            backgroundColor: ['#10B981', '#F59E0B', '#EF4444'],
+                            borderWidth: 0,
+                            hoverOffset: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        cutout: '70%',
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    usePointStyle: true,
+                                    padding: 20,
+                                    font: { size: 12 }
+                                }
+                            }
+                        }
+                    }
+                });
+
+                // Populate recent tests
+                const tbody = document.getElementById('recentTestsBody');
+                if (data.recent_tests.length > 0) {
+                    tbody.innerHTML = data.recent_tests.map(test => `
+                        <tr>
+                            <td><strong>${test.filename}</strong></td>
+                            <td><span class="label-value ${test.prediction.toLowerCase()}">${test.prediction.toUpperCase()}</span></td>
+                            <td class="probability-cell">${test.confidence.toFixed(1)}%</td>
+                            <td class="text-muted">${new Date(test.timestamp).toLocaleString(undefined, {
+                        year: 'numeric', month: 'short', day: 'numeric',
+                        hour: '2-digit', minute: '2-digit'
+                    })}</td>
+                        </tr>
+                    `).join('');
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="4" class="empty-state">No diagnostic activity records found</td></tr>';
+                }
+            })
+            .catch(error => {
+                console.error('Error loading dashboard:', error);
+                const tbody = document.getElementById('recentTestsBody');
+                tbody.innerHTML = '<tr><td colspan="4" class="empty-state text-danger">Failed to connect to analytics service</td></tr>';
+            });
+
+        // Sidebar toggle functionality
+        function toggleSidebar() {
+            const sidebar = document.querySelector('.sidebar');
+            sidebar.classList.toggle('collapsed');
+
+            // Save state to localStorage
+            const isCollapsed = sidebar.classList.contains('collapsed');
+            localStorage.setItem('sidebarCollapsed', isCollapsed);
+        }
+
+        // Restore sidebar state on page load
+        document.addEventListener('DOMContentLoaded', function () {
+            const sidebar = document.querySelector('.sidebar');
+            const isCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+
+            if (isCollapsed) {
+                sidebar.classList.add('collapsed');
+            }
+        });
+    </script>
+    <script src="{{ url_for('static', filename='js/sidebar-toggle.js') }}"></script>
+</body>
+
+</html>

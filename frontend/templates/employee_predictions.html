@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee Predictions - {{ employee.full_name }} - DCRM System</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        .dashboard-container {
+            max-width: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        .dashboard-header {
+            display: none;
+        }
+
+        .predictions-table {
+            width: 100%;
+            margin-top: 20px;
+            border-collapse: collapse;
+        }
+
+        .predictions-table th {
+            text-align: left;
+            padding: 12px;
+            background: #f9fafb;
+            font-size: 13px;
+            font-weight: 600;
+            color: #374151;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .predictions-table td {
+            padding: 12px;
+            border-bottom: 1px solid var(--border);
+            font-size: 14px;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .badge.healthy {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .badge.main {
+            background: #fed7aa;
+            color: #92400e;
+        }
+
+        .badge.arc {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app-wrapper">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <svg class="sidebar-logo" viewBox="0 0 40 40" fill="none">
+                    <rect width="40" height="40" rx="8" fill="url(#gradient)" />
+                    <path d="M20 10 L30 20 L20 30 L10 20 Z" fill="white" opacity="0.9" />
+                    <circle cx="20" cy="20" r="4" fill="white" />
+                    <defs>
+                        <linearGradient id="gradient" x1="0" y1="0" x2="40" y2="40">
+                            <stop offset="0%" stop-color="#667eea" />
+                            <stop offset="100%" stop-color="#764ba2" />
+                        </linearGradient>
+                    </defs>
+                </svg>
+                <span class="sidebar-title">DCRM System</span>
+            </div>
+
+            <nav class="sidebar-nav">
+                <a href="{{ url_for('dashboard.index') }}" class="nav-item">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                        <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                    </svg>
+                    Dashboard
+                </a>
+                <a href="{{ url_for('dashboard.my_history') }}" class="nav-item">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 8v4l3 3m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"></path>
+                    </svg>
+                    My History
+                </a>
+                <a href="{{ url_for('admin.dashboard') }}" class="nav-item active">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path
+                            d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z">
+                        </path>
+                    </svg>
+                    Admin Panel
+                </a>
+                <a href="{{ url_for('admin.sos_management') }}" class="nav-item">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 2L2 7L12 12L22 7L12 2Z"></path>
+                        <path d="M2 17L12 22L22 17"></path>
+                        <path d="M2 12L12 17L22 12"></path>
+                    </svg>
+                    SOS Management
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="user-profile">
+                    <div class="user-avatar">
+                        {{ user.full_name[0]|upper if user.full_name else user.username[0]|upper }}
+                    </div>
+                    <div class="user-info">
+                        <div class="user-name">{{ user.full_name or user.username }}</div>
+                        <div class="user-role">{{ user.role }}</div>
+                    </div>
+                </div>
+                <a href="{{ url_for('auth.logout') }}" class="btn btn-secondary btn-small" style="width: 100%;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        style="margin-right: 8px;">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                        <polyline points="16 17 21 12 16 7"></polyline>
+                        <line x1="21" y1="12" x2="9" y2="12"></line>
+                    </svg>
+                    Logout
+                </a>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="dashboard-header-simple"
+                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+                <div>
+                    <h1 style="font-size: 24px; font-weight: 700; color: #1f2937;">{{ employee.full_name or
+                        employee.username }}'s Predictions</h1>
+                    <p style="color: #6b7280;">@{{ employee.username }} • {{ employee.email }}</p>
+                </div>
+                <a href="{{ url_for('admin.dashboard') }}" class="btn btn-secondary">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" style="margin-right: 8px;">
+                        <path d="M8 14L4 10L8 6M4 10H16" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" />
+                    </svg>
+                    Back to Admin
+                </a>
+            </div>
+
+            <!-- Predictions Table -->
+            <div class="results-card">
+                <div class="card-header">
+                    <h2>Prediction History</h2>
+                    <p class="card-subtitle">Total: {{ predictions|length }} predictions</p>
+                </div>
+
+                <table class="predictions-table">
+                    <thead>
+                        <tr>
+                            <th>Filename</th>
+                            <th>Prediction</th>
+                            <th>Confidence</th>
+                            <th>Features</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for pred in predictions %}
+                        <tr>
+                            <td><strong>{{ pred.filename }}</strong></td>
+                            <td><span class="badge {{ pred.prediction }}">{{ pred.prediction }}</span></td>
+                            <td>{{ (pred.probabilities[pred.prediction] * 100)|round(1) }}%</td>
+                            <td>{{ pred.vector_size|default('N/A') }}</td>
+                            <td>{{ pred.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5" style="text-align: center; padding: 60px; color: #6b7280;">
+                                <svg width="64" height="64" viewBox="0 0 64 64" fill="none"
+                                    style="margin: 0 auto 20px; opacity: 0.3;">
+                                    <path d="M32 16V40M32 16L24 24M32 16L40 24" stroke="currentColor"
+                                        stroke-width="3" />
+                                    <path d="M48 40V48H16V40" stroke="currentColor" stroke-width="3" />
+                                </svg>
+                                <h3 style="margin-bottom: 8px;">No Predictions Yet</h3>
+                                <p>This employee hasn't made any predictions</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+</body>
+
+</html>

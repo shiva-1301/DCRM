@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - DCRM System</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        .admin-layout {
+            display: flex;
+            flex-direction: column;
+            gap: 32px;
+        }
+
+        /* SOS Alert */
+        .sos-alert {
+            background: #FEF2F2;
+            border: 1px solid #FEE2E2;
+            border-left: 4px solid var(--danger);
+            padding: 20px;
+            border-radius: var(--border-radius-lg);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .sos-alert-content {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .sos-alert-icon {
+            width: 40px;
+            height: 40px;
+            background: #FEE2E2;
+            color: var(--danger);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        /* Employee Grid */
+        .employees-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 24px;
+        }
+
+        .employee-card {
+            background: white;
+            border: 1px solid var(--border-light);
+            border-radius: var(--border-radius-lg);
+            padding: 24px;
+            transition: all 0.2s;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .employee-card:hover {
+            box-shadow: var(--shadow-md);
+            border-color: var(--primary);
+        }
+
+        .employee-info {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .emp-avatar {
+            width: 48px;
+            height: 48px;
+            background: var(--primary);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 18px;
+        }
+
+        .emp-details h4 {
+            font-size: 16px;
+            color: var(--text-primary);
+            margin-bottom: 2px;
+        }
+
+        .emp-details p {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        .emp-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .emp-actions>* {
+            flex: 1;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app-wrapper">
+        {% include "components/sidebar.html" %}
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="page-header">
+                <div>
+                    <h1>Admin Dashboard</h1>
+                    <p>Manage personnel, monitor system-wide SOS alerts, and track predictions</p>
+                </div>
+                <button class="btn btn-primary" onclick="showAddEmployeeModal()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                    New Employee
+                </button>
+            </div>
+
+            <div class="admin-layout">
+                <!-- SOS Alert -->
+                {% if pending_sos_count > 0 %}
+                <div class="sos-alert" id="sosAlert">
+                    <div class="sos-alert-content">
+                        <div class="sos-alert-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path
+                                    d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z">
+                                </path>
+                                <line x1="12" y1="9" x2="12" y2="13"></line>
+                                <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                            </svg>
+                        </div>
+                        <div>
+                            <strong style="color: var(--danger); display: block; font-size: 15px;">{{ pending_sos_count
+                                }} Emergency SOS Found</strong>
+                            <p style="color: #991B1B; font-size: 13px; margin: 2px 0 0 0;">Immediate attention required
+                                for field requests.</p>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 12px;">
+                        <a href="{{ url_for('admin_sos') }}" class="btn btn-danger"
+                            style="background: var(--danger); color: white;">Review Now</a>
+                        <button class="btn btn-secondary" onclick="closeSOSPopup()" style="padding: 0 12px;">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Stats Overview -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: rgba(37, 99, 235, 0.1); color: var(--primary);">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="9" cy="7" r="4"></circle>
+                                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                            </svg>
+                        </div>
+                        <div class="stat-content">
+                            <span class="stat-label">Total Personnel</span>
+                            <span class="stat-value">{{ stats.total_employees }}</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: rgba(16, 185, 129, 0.1); color: var(--success);">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+                            </svg>
+                        </div>
+                        <div class="stat-content">
+                            <span class="stat-label">Average Accuracy</span>
+                            <span class="stat-value">{{ stats.average_health }}%</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: rgba(245, 158, 11, 0.1); color: var(--warning);">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                            </svg>
+                        </div>
+                        <div class="stat-content">
+                            <span class="stat-label">Platform Status</span>
+                            <span class="stat-value" style="font-size: 18px; color: var(--success);">Operational</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Employee Management -->
+                <div class="section-container">
+                    <div
+                        style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
+                        <h3 style="font-size: 18px; color: var(--text-primary);">Personnel Management</h3>
+                    </div>
+                    <div class="employees-grid">
+                        {% for employee in employees %}
+                        <div class="employee-card">
+                            <div class="employee-info">
+                                <div class="emp-avatar">{{ (employee.full_name or employee.username)[0]|upper }}</div>
+                                <div class="emp-details">
+                                    <h4>{{ employee.full_name or employee.username }}</h4>
+                                    <p>@{{ employee.username }}</p>
+                                </div>
+                            </div>
+                            <div class="emp-actions">
+                                <a href="{{ url_for('employee_predictions', user_id=employee.id) }}"
+                                    class="btn btn-secondary" style="font-size: 13px;">Predictions</a>
+                                <form method="POST" action="{{ url_for('delete_employee', user_id=employee.id) }}"
+                                    onsubmit="return confirm('Archive employee record?');">
+                                    <button type="submit" class="btn btn-outline-danger"
+                                        style="width: 100%; font-size: 13px;">Archive</button>
+                                </form>
+                            </div>
+                        </div>
+                        {% else %}
+                        <div
+                            style="grid-column: 1/-1; text-align: center; padding: 60px 0; background: #F8FAFC; border-radius: 12px; border: 2px dashed var(--border-light);">
+                            <p style="color: var(--text-muted);">No employees found. Add your first team member to
+                                begin.</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Global Activity -->
+                <div class="section-container">
+                    <h3 style="font-size: 18px; color: var(--text-primary); margin-bottom: 20px;">Global Prediction Log
+                    </h3>
+                    <div class="table-card">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Personnel</th>
+                                    <th>Data File</th>
+                                    <th>Diagnostic</th>
+                                    <th>Confidence</th>
+                                    <th>Timestamp</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for pred in predictions %}
+                                <tr>
+                                    <td style="font-weight: 500; color: var(--text-primary);">{{ pred.full_name or
+                                        pred.username }}</td>
+                                    <td><code>{{ pred.filename }}</code></td>
+                                    <td><span class="status-badge {{ pred.prediction }}">{{ pred.prediction|title
+                                            }}</span></td>
+                                    <td style="font-variant-numeric: tabular-nums;">{{
+                                        (pred.probabilities[pred.prediction] * 100)|round(1) }}%</td>
+                                    <td style="color: var(--text-muted);">{{ pred.timestamp.strftime('%Y-%m-%d %H:%M')
+                                        if pred.timestamp else 'N/A' }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <div class="modal" id="addEmployeeModal">
+        <div class="modal-dialog">
+            <div class="modal-header">
+                <h3>Onboard Personnel</h3>
+                <button class="btn btn-secondary" onclick="hideAddEmployeeModal()"
+                    style="padding: 4px;">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form method="POST" action="{{ url_for('add_employee') }}" class="standard-form">
+                    <div class="form-group">
+                        <label>Full Name</label>
+                        <input type="text" name="full_name" placeholder="John Doe" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Username</label>
+                            <input type="text" name="username" placeholder="jdoe" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Email Address</label>
+                            <input type="email" name="email" placeholder="john@example.com" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Initial Password</label>
+                        <input type="password" name="password" required>
+                    </div>
+                    <div style="margin-top: 24px;">
+                        <button type="submit" class="btn btn-primary" style="width: 100%;">Create Account</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showAddEmployeeModal() {
+            document.getElementById('addEmployeeModal').classList.add('active');
+        }
+
+        function hideAddEmployeeModal() {
+            document.getElementById('addEmployeeModal').classList.remove('active');
+        }
+
+        function closeSOSPopup() {
+            const el = document.getElementById('sosAlert');
+            if (el) el.style.display = 'none';
+        }
+
+        // Close modal on escape
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') hideAddEmployeeModal();
+        });
+    </script>
+    <script src="{{ url_for('static', filename='js/sidebar-toggle.js') }}"></script>
+</body>
+
+</html>

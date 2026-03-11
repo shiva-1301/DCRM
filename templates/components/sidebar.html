@@ -1,0 +1,125 @@
+<!-- Reusable Sidebar Component -->
+<aside class="sidebar">
+    <div class="sidebar-header">
+        <svg class="sidebar-logo" viewBox="0 0 32 32" fill="none">
+            <rect width="32" height="32" rx="8" fill="#2563EB" />
+            <path d="M16 8 L24 16 L16 24 L8 16 Z" fill="white" opacity="0.9" />
+            <circle cx="16" cy="16" r="3" fill="white" />
+        </svg>
+        <span class="sidebar-title">DCRM System</span>
+    </div>
+
+    <nav class="sidebar-nav">
+        <a href="{{ url_for('dashboard') }}"
+            class="nav-item {{ 'active' if request.endpoint in ['dashboard', 'index'] else '' }}">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                <polyline points="9 22 9 12 15 12 15 22"></polyline>
+            </svg>
+            Dashboard
+        </a>
+        <a href="{{ url_for('analysis_page') }}"
+            class="nav-item {{ 'active' if request.endpoint == 'analysis_page' else '' }}">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path>
+            </svg>
+            New Analysis
+        </a>
+        <a href="{{ url_for('my_history') }}"
+            class="nav-item {{ 'active' if request.endpoint == 'my_history' else '' }}">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 8v4l3 3m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"></path>
+            </svg>
+            My History
+        </a>
+        <a href="{{ url_for('reports_page') }}"
+            class="nav-item {{ 'active' if request.endpoint == 'reports_page' else '' }}">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M9 17H7A5 5 0 0 1 7 7h2M15 7h2a5 5 0 1 1 0 10h-2m-8-5h10"></path>
+            </svg>
+            Reports
+        </a>
+        <a href="{{ url_for('sos_page') }}" class="nav-item {{ 'active' if request.endpoint == 'sos_page' else '' }}">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z">
+                </path>
+                <line x1="12" y1="9" x2="12" y2="13"></line>
+                <line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>
+            SOS Request
+        </a>
+        <a href="{{ url_for('field_advisor') }}"
+            class="nav-item {{ 'active' if request.endpoint == 'field_advisor' else '' }}">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            </svg>
+            Field Advisor
+        </a>
+        <a href="{{ url_for('graph_plotter') }}"
+            class="nav-item {{ 'active' if request.endpoint == 'graph_plotter' else '' }}">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+            </svg>
+            Graph Plotter
+        </a>
+        <a href="{{ url_for('interactions') }}"
+            class="nav-item {{ 'active' if request.endpoint == 'interactions' else '' }}">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+            </svg>
+            Interactions
+        </a>
+        <a href="{{ url_for('user_guide') }}"
+            class="nav-item {{ 'active' if request.endpoint == 'user_guide' else '' }}">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+                <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+            </svg>
+            User Guide
+        </a>
+        {% if user.is_admin() %}
+        <a href="{{ url_for('admin_dashboard') }}"
+            class="nav-item {{ 'active' if request.endpoint in ['admin_dashboard', 'employee_predictions', 'admin_sos', 'settings_page'] else '' }}">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="3"></circle>
+                <path
+                    d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9c.28.46.73.77 1.24.88H21a2 2 0 0 1 0 4h-.09c-.51.11-.96.42-1.24.88z">
+                </path>
+            </svg>
+            Admin Panel
+        </a>
+        {% endif %}
+    </nav>
+
+    <div class="sidebar-footer">
+        <div class="user-profile">
+            <div class="user-avatar">
+                {{ user.full_name[0]|upper if user.full_name else user.username[0]|upper }}
+            </div>
+            <div class="user-info">
+                <div class="user-name">{{ user.full_name or user.username }}</div>
+                <div class="user-role">{{ user.role }}</div>
+            </div>
+        </div>
+        <a href="{{ url_for('logout') }}" class="btn btn-secondary btn-small" style="width: 100%;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                <polyline points="16 17 21 12 16 7"></polyline>
+                <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
+            Logout
+        </a>
+    </div>
+</aside>
+
+<!-- Sidebar Toggle -->
+<button class="sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="3" y1="12" x2="21" y2="12"></line>
+        <line x1="3" y1="6" x2="21" y2="6"></line>
+        <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+</button>

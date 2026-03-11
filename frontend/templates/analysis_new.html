@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>New Analysis - DCRM System</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
+    <style>
+        .analysis-container {
+            padding: 2rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .analysis-header {
+            text-align: center;
+            margin-bottom: 2rem;
+            color: white;
+        }
+
+        .analysis-header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .upload-card {
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            max-width: 600px;
+            margin: 0 auto 2rem;
+        }
+
+        .upload-zone {
+            border: 3px dashed #d1d5db;
+            border-radius: 12px;
+            padding: 3rem 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .upload-zone:hover {
+            border-color: #667eea;
+            background: #f3f4f6;
+        }
+
+        .upload-zone.dragover {
+            border-color: #10b981;
+            background: #ecfdf5;
+        }
+
+        .results-card {
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+        }
+
+        .prediction-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #e5e7eb;
+        }
+
+        .prediction-main {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .prediction-icon {
+            font-size: 4rem;
+        }
+
+        .prob-item {
+            display: grid;
+            grid-template-columns: 100px 1fr 80px;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .prob-bar-bg {
+            background: #e5e7eb;
+            border-radius: 8px;
+            height: 24px;
+            overflow: hidden;
+        }
+
+        .prob-bar-fill {
+            height: 100%;
+            border-radius: 8px;
+            transition: width 0.5s ease;
+        }
+
+        .graph-card {
+            background: #f9fafb;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid #e5e7eb;
+        }
+
+        .graph-card h3 {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 1rem;
+        }
+
+        .graph-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .reset-zoom-btn {
+            padding: 0.5rem 1rem;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .reset-zoom-btn:hover {
+            background: #5568d3;
+            transform: translateY(-1px);
+        }
+
+        .zoom-hint {
+            font-size: 0.75rem;
+            color: #6b7280;
+            margin-top: 0.5rem;
+            font-style: italic;
+        }
+
+        .validation-section {
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-top: 2rem;
+            border: 2px solid #667eea;
+        }
+
+        .validation-header {
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .validation-header h3 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 0.5rem;
+        }
+
+        .validation-question {
+            font-size: 1.125rem;
+            color: #4b5563;
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .validation-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .btn-correct,
+        .btn-incorrect {
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.125rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-correct {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+        }
+
+        .btn-correct:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(16, 185, 129, 0.4);
+        }
+
+        .btn-incorrect {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+        }
+
+        .btn-incorrect:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(239, 68, 68, 0.4);
+        }
+
+        .correction-section {
+            background: #fef3c7;
+            border: 2px solid #f59e0b;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-top: 1rem;
+        }
+
+        .correction-section h4 {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: #92400e;
+            margin-bottom: 1rem;
+        }
+
+        .label-options {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .label-option {
+            padding: 1rem 2rem;
+            border: 2px solid #d1d5db;
+            border-radius: 12px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+            min-width: 120px;
+        }
+
+        .label-option:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .label-option.selected {
+            border-color: #667eea;
+            background: #ede9fe;
+        }
+
+        .label-icon {
+            font-size: 2rem;
+        }
+
+        .btn-retrain {
+            padding: 1rem 2rem;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.125rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 1rem;
+            width: 100%;
+        }
+
+        .btn-retrain:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-retrain:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app-wrapper">
+        <!-- Sidebar (same as dashboard) -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <svg class="sidebar-logo" viewBox="0 0 40 40" fill="none">
+                    <rect width="40" height="40" rx="8" fill="url(#gradient)" />
+                    <path d="M20 10 L30 20 L20 30 L10 20 Z" fill="white" opacity="0.9" />
+                    <circle cx="20" cy="20" r="4" fill="white" />
+                    <defs>
+                        <linearGradient id="gradient" x1="0" y1="0" x2="40" y2="40">
+                            <stop offset="0%" stop-color="#667eea" />
+                            <stop offset="100%" stop-color="#764ba2" />
+                        </linearGradient>
+                    </defs>
+                </svg>
+                <span class="sidebar-title">DCRM System</span>
+            </div>
+
+            <nav class="sidebar-nav">
+                <a href="{{ url_for('dashboard.dashboard') }}" class="nav-item">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                    </svg>
+                    Dashboard
+                </a>
+                <a href="{{ url_for('prediction.analysis_page') }}" class="nav-item active">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="M12 16v-4M12 8h.01"></path>
+                    </svg>
+                    New Analysis
+                </a>
+                <a href="{{ url_for('dashboard.my_history') }}" class="nav-item">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 8v4l3 3m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"></path>
+                    </svg>
+                    My History
+                </a>
+                <a href="{{ url_for('dashboard.reports_page') }}" class="nav-item">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 17H7A5 5 0 0 1 7 7h2M15 7h2a5 5 0 1 1 0 10h-2m-8-5h10"></path>
+                    </svg>
+                    Reports
+                </a>
+                <a href="{{ url_for('sos.sos_page') }}" class="nav-item">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 2L2 7L12 12L22 7L12 2Z"></path>
+                    </svg>
+                    SOS Request
+                </a>
+                <a href="{{ url_for('chatbot.field_advisor') }}" class="nav-item">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                    </svg>
+                    Field Advisor
+                </a>
+                <a href="{{ url_for('dashboard.graph_plotter') }}" class="nav-item">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 21H4.6c-.56 0-.84 0-1.054-.109a1 1 0 0 1-.437-.437C3 20.24 3 19.96 3 19.4V3">
+                        </path>
+                        <path d="M7 14l3.5-3.5L14 14l6-6"></path>
+                    </svg>
+                    Graph Plotter
+                </a>
+                <a href="{{ url_for('interaction.interactions') }}" class="nav-item">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M17 8h2a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2h-2v4l-4-4H9"></path>
+                    </svg>
+                    Interactions
+                </a>
+                <a href="{{ url_for('dashboard.user_guide') }}" class="nav-item">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                    </svg>
+                    User Guide
+                </a>
+                {% if user.is_admin() %}
+                <a href="{{ url_for('admin.dashboard') }}" class="nav-item">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4z"></path>
+                    </svg>
+                    Admin Panel
+                </a>
+                {% endif %}
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="user-profile">
+                    <div class="user-avatar">
+                        {{ user.full_name[0]|upper if user.full_name else user.username[0]|upper }}
+                    </div>
+                    <div class="user-info">
+                        <div class="user-name">{{ user.full_name or user.username }}</div>
+                        <div class="user-role">{{ user.role }}</div>
+                    </div>
+                </div>
+                <a href="{{ url_for('auth.logout') }}" class="btn btn-secondary btn-small" style="width: 100%;">
+                    Logout
+                </a>
+            </div>
+        </aside>
+
+        <!-- Sidebar Toggle Button -->
+        <button class="sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="3" y1="12" x2="21" y2="12"></line>
+                <line x1="3" y1="6" x2="21" y2="6"></line>
+                <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
+        </button>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="analysis-container">
+                <div class="analysis-header">
+                    <h1>🔬 New Analysis</h1>
+                    <p>Upload CSV file for comprehensive DCRM analysis</p>
+                </div>
+
+                <!-- Upload Section -->
+                <div class="upload-card" id="uploadSection">
+                    <div class="upload-zone" id="uploadZone">
+                        <input type="file" id="fileInput" accept=".csv" style="display: none;">
+                        <div style="font-size: 4rem; margin-bottom: 1rem;">📁</div>
+                        <p style="font-size: 1.125rem; font-weight: 600; margin-bottom: 0.5rem;">Drag & drop CSV file
+                            here</p>
+                        <p style="font-size: 0.875rem; color: #6b7280; margin-bottom: 1.5rem;">or click to browse</p>
+                        <button class="btn btn-primary" onclick="document.getElementById('fileInput').click()">Browse
+                            Files</button>
+                    </div>
+                    <div id="fileInfo" style="display: none; margin-top: 1rem;">
+                        <p id="fileName" style="font-weight: 600;"></p>
+                        <button class="btn btn-primary btn-large" id="analyzeBtn"
+                            style="margin-top: 1rem; width: 100%;">🔍 Analyze File</button>
+                    </div>
+                </div>
+
+                <!-- Results Section -->
+                <div id="resultsSection" style="display: none;">
+                    <div class="results-card">
+                        <div class="prediction-header">
+                            <h2>Analysis Results</h2>
+                            <button class="btn btn-primary" onclick="location.reload()">📤 New Analysis</button>
+                        </div>
+
+                        <div class="prediction-main">
+                            <div class="prediction-icon" id="predictionIcon"></div>
+                            <div>
+                                <h3 style="font-size: 1.5rem; margin-bottom: 0.5rem;">Prediction: <span
+                                        id="predictionText"></span></h3>
+                                <p style="color: #6b7280;" id="fileNameResult"></p>
+                            </div>
+                        </div>
+
+                        <div id="probabilitiesContainer"></div>
+                    </div>
+
+                    <!-- Graphs Section -->
+                    <div class="results-card">
+                        <h2 style="margin-bottom: 1.5rem;">📊 Time-Series Analysis</h2>
+
+                        <!-- Combined Graph -->
+                        <div class="graph-card"
+                            style="background: linear-gradient(135deg, #667eea10, #764ba210); border: 2px solid #667eea;">
+                            <div class="graph-header">
+                                <div>
+                                    <h3>🔗 Combined View - All Parameters</h3>
+                                    <p style="font-size: 0.875rem; color: #6b7280; margin: 0;">All 4 parameters
+                                        displayed on a single chart for comprehensive analysis</p>
+                                </div>
+                                <button class="reset-zoom-btn" onclick="resetZoom('combinedChart')">🔍 Reset
+                                    Zoom</button>
+                            </div>
+                            <canvas id="combinedChart"></canvas>
+                            <p class="zoom-hint">💡 Tip: Scroll to zoom, drag to pan, or select an area to zoom in</p>
+                        </div>
+
+                        <h3 style="margin: 2rem 0 1rem 0; color: #1f2937;">Individual Parameter Graphs</h3>
+
+                        <div class="graph-card">
+                            <div class="graph-header">
+                                <h3>⚡ Coil Current vs Time</h3>
+                                <button class="reset-zoom-btn" onclick="resetZoom('coilChart')">🔍 Reset Zoom</button>
+                            </div>
+                            <canvas id="coilChart"></canvas>
+                            <p class="zoom-hint">💡 Scroll to zoom, drag to pan</p>
+                        </div>
+
+                        <div class="graph-card">
+                            <div class="graph-header">
+                                <h3>🔌 Resistance vs Time</h3>
+                                <button class="reset-zoom-btn" onclick="resetZoom('resistanceChart')">🔍 Reset
+                                    Zoom</button>
+                            </div>
+                            <canvas id="resistanceChart"></canvas>
+                            <p class="zoom-hint">💡 Scroll to zoom, drag to pan</p>
+                        </div>
+
+                        <div class="graph-card">
+                            <div class="graph-header">
+                                <h3>📈 DCRM Current vs Time</h3>
+                                <button class="reset-zoom-btn" onclick="resetZoom('dcrmChart')">🔍 Reset Zoom</button>
+                            </div>
+                            <canvas id="dcrmChart"></canvas>
+                            <p class="zoom-hint">💡 Scroll to zoom, drag to pan</p>
+                        </div>
+
+                        <div class="graph-card">
+                            <div class="graph-header">
+                                <h3>📏 Contact Travel vs Time</h3>
+                                <button class="reset-zoom-btn" onclick="resetZoom('travelChart')">🔍 Reset Zoom</button>
+                            </div>
+                            <canvas id="travelChart"></canvas>
+                            <p class="zoom-hint">💡 Scroll to zoom, drag to pan</p>
+                        </div>
+
+                        <!-- Validation Section -->
+                        <div class="validation-section">
+                            <div class="validation-header">
+                                <h3>🎯 Validate Prediction</h3>
+                                <p style="font-size: 0.875rem; color: #6b7280;">Help improve the model by validating the
+                                    prediction</p>
+                            </div>
+
+                            <p class="validation-question">Is the prediction correct?</p>
+
+                            <div class="validation-buttons">
+                                <button class="btn-correct" onclick="handleCorrect()">
+                                    <span>✅</span>
+                                    <span>Correct</span>
+                                </button>
+                                <button class="btn-incorrect" onclick="handleIncorrect()">
+                                    <span>❌</span>
+                                    <span>Incorrect</span>
+                                </button>
+                            </div>
+
+                            <!-- Correction Section (hidden by default) -->
+                            <div class="correction-section" id="correctionSection" style="display: none;">
+                                <h4>📝 Please select the correct classification:</h4>
+                                <div class="label-options">
+                                    <div class="label-option" onclick="selectLabel('healthy')">
+                                        <span class="label-icon">✅</span>
+                                        <span style="font-weight: 600;">Healthy</span>
+                                    </div>
+                                    <div class="label-option" onclick="selectLabel('main')">
+                                        <span class="label-icon">⚠️</span>
+                                        <span style="font-weight: 600;">Main Fault</span>
+                                    </div>
+                                    <div class="label-option" onclick="selectLabel('arc')">
+                                        <span class="label-icon">⚡</span>
+                                        <span style="font-weight: 600;">Arc Fault</span>
+                                    </div>
+                                </div>
+                                <button class="btn-retrain" id="retrainBtn" onclick="handleRetrain()" disabled>
+                                    🔄 Retrain Model with Correct Label
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const uploadZone = document.getElementById('uploadZone');
+        const fileInput = document.getElementById('fileInput');
+        const fileInfo = document.getElementById('fileInfo');
+        const fileName = document.getElementById('fileName');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        let selectedFile = null;
+
+        // Store chart instances for zoom reset
+        const chartInstances = {};
+
+        // Reset zoom function
+        function resetZoom(chartId) {
+            if (chartInstances[chartId]) {
+                chartInstances[chartId].resetZoom();
+            }
+        }
+
+        // Drag and drop
+        uploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadZone.classList.add('dragover');
+        });
+
+        uploadZone.addEventListener('dragleave', () => {
+            uploadZone.classList.remove('dragover');
+        });
+
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file && file.name.endsWith('.csv')) {
+                selectedFile = file;
+                fileName.textContent = file.name;
+                fileInfo.style.display = 'block';
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                selectedFile = file;
+                fileName.textContent = file.name;
+                fileInfo.style.display = 'block';
+            }
+        });
+
+        analyzeBtn.addEventListener('click', async () => {
+            if (!selectedFile) return;
+
+            analyzeBtn.disabled = true;
+            analyzeBtn.textContent = '⏳ Analyzing...';
+
+            const formData = new FormData();
+            formData.append('file', selectedFile);
+
+            try {
+                const response = await fetch('/api/analyze-csv', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    displayResults(data);
+                } else {
+                    alert('Error: ' + data.error);
+                    analyzeBtn.disabled = false;
+                    analyzeBtn.textContent = '🔍 Analyze File';
+                }
+            } catch (error) {
+                alert('Error analyzing file: ' + error.message);
+                analyzeBtn.disabled = false;
+                analyzeBtn.textContent = '🔍 Analyze File';
+            }
+        });
+
+        function displayResults(data) {
+            document.getElementById('uploadSection').style.display = 'none';
+            document.getElementById('resultsSection').style.display = 'block';
+
+            // Store filepath for retraining
+            currentFilePath = data.filepath;
+
+            // Prediction results
+            const icons = { healthy: '✅', main: '⚠️', arc: '⚡' };
+            const colors = { healthy: '#10b981', main: '#f59e0b', arc: '#ef4444' };
+
+            document.getElementById('predictionIcon').textContent = icons[data.prediction];
+            document.getElementById('predictionIcon').style.color = colors[data.prediction];
+            document.getElementById('predictionText').textContent = data.prediction.toUpperCase();
+            document.getElementById('predictionText').style.color = colors[data.prediction];
+            document.getElementById('fileNameResult').textContent = 'File: ' + data.filename;
+
+            // Probabilities
+            const probContainer = document.getElementById('probabilitiesContainer');
+            probContainer.innerHTML = Object.entries(data.probabilities).map(([label, prob]) => `
+                <div class="prob-item">
+                    <div style="font-weight: 600; color: #4b5563;">${label.toUpperCase()}</div>
+                    <div class="prob-bar-bg">
+                        <div class="prob-bar-fill" style="width: ${prob * 100}%; background-color: ${colors[label]};"></div>
+                    </div>
+                    <div style="font-weight: 700; text-align: right;">${(prob * 100).toFixed(1)}%</div>
+                </div>
+            `).join('');
+
+            // Create graphs
+            const graphData = data.graph_data;
+            const timeLabels = graphData.time;
+
+            // Create combined chart first
+            createCombinedChart(timeLabels, graphData);
+
+            // Create individual charts
+            createChart('coilChart', 'Coil Current (A)', timeLabels, graphData.coil_current, '#3b82f6');
+            createChart('resistanceChart', 'Resistance (µΩ)', timeLabels, graphData.resistance, '#8b5cf6');
+            createChart('dcrmChart', 'DCRM Current (A)', timeLabels, graphData.dcrm_current, '#10b981');
+            createChart('travelChart', 'Contact Travel (mm)', timeLabels, graphData.contact_travel, '#f59e0b');
+        }
+
+        function createCombinedChart(labels, graphData) {
+            const ctx = document.getElementById('combinedChart').getContext('2d');
+            chartInstances['combinedChart'] = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Coil Current (A)',
+                            data: graphData.coil_current,
+                            borderColor: '#3b82f6',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            borderWidth: 2,
+                            pointRadius: 0,
+                            tension: 0.1,
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: 'Resistance (µΩ)',
+                            data: graphData.resistance,
+                            borderColor: '#8b5cf6',
+                            backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                            borderWidth: 2,
+                            pointRadius: 0,
+                            tension: 0.1,
+                            yAxisID: 'y1'
+                        },
+                        {
+                            label: 'DCRM Current (A)',
+                            data: graphData.dcrm_current,
+                            borderColor: '#10b981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                            borderWidth: 2,
+                            pointRadius: 0,
+                            tension: 0.1,
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: 'Contact Travel (mm)',
+                            data: graphData.contact_travel,
+                            borderColor: '#f59e0b',
+                            backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                            borderWidth: 2,
+                            pointRadius: 0,
+                            tension: 0.1,
+                            yAxisID: 'y2'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                        },
+                        tooltip: {
+                            enabled: true,
+                            mode: 'index',
+                            intersect: false,
+                        },
+                        zoom: {
+                            zoom: {
+                                wheel: {
+                                    enabled: true,
+                                    speed: 0.1
+                                },
+                                pinch: {
+                                    enabled: true
+                                },
+                                mode: 'xy',
+                                drag: {
+                                    enabled: true,
+                                    backgroundColor: 'rgba(102, 126, 234, 0.2)',
+                                    borderColor: '#667eea',
+                                    borderWidth: 2
+                                }
+                            },
+                            pan: {
+                                enabled: true,
+                                mode: 'xy',
+                                modifierKey: 'ctrl'
+                            },
+                            limits: {
+                                x: { min: 'original', max: 'original' },
+                                y: { min: 'original', max: 'original' }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Time (samples)'
+                            }
+                        },
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            title: {
+                                display: true,
+                                text: 'Current (A)'
+                            }
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            title: {
+                                display: true,
+                                text: 'Resistance (µΩ)'
+                            },
+                            grid: {
+                                drawOnChartArea: false,
+                            }
+                        },
+                        y2: {
+                            type: 'linear',
+                            display: false,
+                            position: 'right',
+                        }
+                    }
+                }
+            });
+        }
+
+        function createChart(canvasId, label, labels, data, color) {
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            chartInstances[canvasId] = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: label,
+                        data: data,
+                        borderColor: color,
+                        backgroundColor: color + '20',
+                        borderWidth: 2,
+                        pointRadius: 0,
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            display: true
+                        },
+                        zoom: {
+                            zoom: {
+                                wheel: {
+                                    enabled: true,
+                                    speed: 0.1
+                                },
+                                pinch: {
+                                    enabled: true
+                                },
+                                mode: 'xy',
+                                drag: {
+                                    enabled: true,
+                                    backgroundColor: 'rgba(102, 126, 234, 0.2)',
+                                    borderColor: '#667eea',
+                                    borderWidth: 2
+                                }
+                            },
+                            pan: {
+                                enabled: true,
+                                mode: 'xy',
+                                modifierKey: 'ctrl'
+                            },
+                            limits: {
+                                x: { min: 'original', max: 'original' },
+                                y: { min: 'original', max: 'original' }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Time (samples)'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: label
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Validation and Retraining Functions
+        let selectedCorrectLabel = null;
+        let currentFilePath = null;
+
+        function handleCorrect() {
+            alert('✅ Great! No retraining needed.\n\nThe model prediction is correct. Thank you for validating!');
+        }
+
+        function handleIncorrect() {
+            document.getElementById('correctionSection').style.display = 'block';
+            // Scroll to correction section
+            document.getElementById('correctionSection').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        function selectLabel(label) {
+            selectedCorrectLabel = label;
+
+            // Remove selected class from all options
+            document.querySelectorAll('.label-option').forEach(option => {
+                option.classList.remove('selected');
+            });
+
+            // Add selected class to clicked option
+            event.target.closest('.label-option').classList.add('selected');
+
+            // Enable retrain button
+            document.getElementById('retrainBtn').disabled = false;
+        }
+
+        async function handleRetrain() {
+            if (!selectedCorrectLabel) {
+                alert('Please select the correct label first');
+                return;
+            }
+
+            if (!currentFilePath) {
+                alert('Error: File path not found');
+                return;
+            }
+
+            const retrainBtn = document.getElementById('retrainBtn');
+            retrainBtn.disabled = true;
+            retrainBtn.textContent = '⏳ Retraining model...';
+
+            try {
+                const response = await fetch('/api/retrain', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        filepath: currentFilePath,
+                        correct_label: selectedCorrectLabel
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    alert(`✅ Model Retrained Successfully!\n\n` +
+                        `Correct Label: ${selectedCorrectLabel.toUpperCase()}\n` +
+                        `The model has been updated with your feedback.\n\n` +
+                        `Thank you for helping improve the system!`);
+
+                    // Reset the form
+                    document.getElementById('correctionSection').style.display = 'none';
+                    selectedCorrectLabel = null;
+                    document.querySelectorAll('.label-option').forEach(option => {
+                        option.classList.remove('selected');
+                    });
+                } else {
+                    alert('❌ Error: ' + (data.error || 'Retraining failed'));
+                }
+            } catch (error) {
+                alert('❌ Error retraining model: ' + error.message);
+            } finally {
+                retrainBtn.disabled = false;
+                retrainBtn.textContent = '🔄 Retrain Model with Correct Label';
+            }
+        }
+    </script>
+    <script src="{{ url_for('static', filename='js/sidebar-toggle.js') }}"></script>
+</body>
+
+</html>

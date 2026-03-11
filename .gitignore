@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+venv/
+.venv/
+
+# Environment
+.env
+
+# ML artefacts (manage separately via model registry or cloud storage)
+ml/model/*.pkl
+ml/dataset/*.npz
+ml/training_history.json
+dcrm_model.pkl
+dcrm_scaler.pkl
+dcrm_training_dataset.npz
+training_history.json
+
+# Temporary/Log files
+all_url_for.txt
+missed_url_for.txt
+
+# Uploads (user data — do not commit)
+uploads/
+
+# IDE
+.vscode/
+.idea/
+
+# Node
+graph_plotter/node_modules/
+graph_plotter/dist/
+
+# OS
+.DS_Store
+Thumbs.db

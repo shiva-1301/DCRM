@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Prediction History - DCRM System</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+<body>
+    <div class="app-wrapper">
+        {% include "components/sidebar.html" %}
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="page-header">
+                <h1>My Prediction History</h1>
+                <p>Comprehensive record of all your diagnostic analyses and historical results</p>
+            </div>
+
+            <div class="card">
+                <div class="card-header"
+                    style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                    <div>
+                        <h2>Recent Predictions</h2>
+                        <p class="card-subtitle">Showing all historical diagnostic results associated with your account
+                        </p>
+                    </div>
+                    <a href="{{ url_for('analysis_page') }}" class="btn btn-primary btn-small">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                        New Analysis
+                    </a>
+                </div>
+
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Filename</th>
+                                <th>Prediction</th>
+                                <th>Confidence</th>
+                                <th>Features</th>
+                                <th>Timestamp</th>
+                                <th style="text-align: right;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for pred in predictions %}
+                            <tr>
+                                <td><span style="font-weight: 500;">{{ pred.filename }}</span></td>
+                                <td><span class="label-value {{ pred.prediction.lower() }}">{{ pred.prediction|upper
+                                        }}</span></td>
+                                <td>
+                                    <div style="display: flex; align-items: center; gap: 8px;">
+                                        <div
+                                            style="flex: 1; height: 6px; background: #E5E7EB; border-radius: 3px; min-width: 60px;">
+                                            <div
+                                                style="height: 100%; width: {{ (pred.probabilities[pred.prediction] * 100)|round }}%; background: var(--primary); border-radius: 3px;">
+                                            </div>
+                                        </div>
+                                        <span>{{ (pred.probabilities[pred.prediction] * 100)|round(1) }}%</span>
+                                    </div>
+                                </td>
+                                <td>{{ pred.vector_size|default('N/A') }} pts</td>
+                                <td class="text-muted">{{ pred.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
+                                <td style="text-align: right;">
+                                    <a href="{{ url_for('download_report_pdf', report_id=pred.id) }}"
+                                        class="btn btn-secondary btn-small">Report</a>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="6" style="padding: 60px 0;">
+                                    <div style="text-align: center; color: var(--text-muted);">
+                                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none"
+                                            stroke="currentColor" stroke-width="1.2"
+                                            style="margin-bottom: 16px; opacity: 0.2;">
+                                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                            <polyline points="14 2 14 8 20 8"></polyline>
+                                            <line x1="16" y1="13" x2="8" y2="13"></line>
+                                            <line x1="16" y1="17" x2="8" y2="17"></line>
+                                        </svg>
+                                        <h3>No predictions found</h3>
+                                        <p>Your analysis history is currently empty.</p>
+                                        <a href="{{ url_for('analysis_page') }}" class="btn btn-primary mt-3">Start
+                                            First Analysis</a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script src="{{ url_for('static', filename='js/sidebar-toggle.js') }}"></script>
+</body>
+
+</html>

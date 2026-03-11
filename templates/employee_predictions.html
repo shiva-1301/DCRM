@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee Predictions - {{ employee.full_name }} - DCRM System</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        .predictions-layout {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .user-profile-header {
+            background: white;
+            border: 1px solid var(--border-light);
+            border-radius: var(--border-radius-lg);
+            padding: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .user-info-large {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .user-large-avatar {
+            width: 64px;
+            height: 64px;
+            background: var(--primary);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .user-text-details h2 {
+            font-size: 20px;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .user-text-details p {
+            font-size: 14px;
+            color: var(--text-muted);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app-wrapper">
+        {% include "components/sidebar.html" %}
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="page-header">
+                <div>
+                    <h1>Personnel Analytics</h1>
+                    <p>Detailed prediction history and diagnostic logs</p>
+                </div>
+                <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="19" y1="12" x2="5" y2="12"></line>
+                        <polyline points="12 19 5 12 12 5"></polyline>
+                    </svg>
+                    Back to Dashboard
+                </a>
+            </div>
+
+            <div class="predictions-layout">
+                <!-- User Profile Card -->
+                <div class="user-profile-header">
+                    <div class="user-info-large">
+                        <div class="user-large-avatar">{{ (employee.full_name or employee.username)[0]|upper }}</div>
+                        <div class="user-text-details">
+                            <h2>{{ employee.full_name or employee.username }}</h2>
+                            <p>@{{ employee.username }} • {{ employee.email }}</p>
+                        </div>
+                    </div>
+                    <div class="stat-content" style="text-align: right;">
+                        <span class="stat-label">Total Submissions</span>
+                        <span class="stat-value" style="font-size: 24px;">{{ predictions|length }}</span>
+                    </div>
+                </div>
+
+                <!-- Predictions Table -->
+                <div class="section-container">
+                    <div class="table-card">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Data File</th>
+                                    <th>Diagnostic</th>
+                                    <th>Confidence</th>
+                                    <th>Dimensions</th>
+                                    <th>Timestamp</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for pred in predictions %}
+                                <tr>
+                                    <td style="font-weight: 500; color: var(--text-primary);">
+                                        <code>{{ pred.filename }}</code></td>
+                                    <td><span class="status-badge {{ pred.prediction }}">{{ pred.prediction|title
+                                            }}</span></td>
+                                    <td style="font-variant-numeric: tabular-nums;">{{
+                                        (pred.probabilities[pred.prediction] * 100)|round(1) }}%</td>
+                                    <td style="color: var(--text-muted);">{{ pred.vector_size|default('N/A') }} features
+                                    </td>
+                                    <td style="color: var(--text-muted);">{{ pred.timestamp.strftime('%Y-%m-%d
+                                        %H:%M:%S') }}</td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="5" style="text-align: center; padding: 100px 0;">
+                                        <div
+                                            style="background: #F8FAFC; width: 64px; height: 64px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px;">
+                                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none"
+                                                stroke="var(--text-muted)" stroke-width="1.5">
+                                                <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z">
+                                                </path>
+                                                <polyline points="13 2 13 9 20 9"></polyline>
+                                            </svg>
+                                        </div>
+                                        <h3 style="font-size: 18px; color: var(--text-primary); margin-bottom: 8px;">No
+                                            Activity Recorded</h3>
+                                        <p style="color: var(--text-muted);">This personnel has not uploaded any
+                                            diagnostic files yet.</p>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script src="{{ url_for('static', filename='js/sidebar-toggle.js') }}"></script>
+</body>
+
+</html>
