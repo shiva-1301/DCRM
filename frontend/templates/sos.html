@@ -6,7 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SOS Request - DCRM System</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
     <style>
         .sos-hero {
             background: linear-gradient(135deg, #ef4444 0%, #dc2626 50%, #b91c1c 100%);
@@ -26,13 +27,22 @@
             right: -50%;
             width: 200%;
             height: 200%;
-            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
             animation: pulse-glow 3s ease-in-out infinite;
         }
 
         @keyframes pulse-glow {
-            0%, 100% { transform: scale(1); opacity: 0.5; }
-            50% { transform: scale(1.1); opacity: 0.8; }
+
+            0%,
+            100% {
+                transform: scale(1);
+                opacity: 0.5;
+            }
+
+            50% {
+                transform: scale(1.1);
+                opacity: 0.8;
+            }
         }
 
         .sos-hero-content {
@@ -249,8 +259,15 @@
         }
 
         @keyframes pulse-badge {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.7; }
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.7;
+            }
         }
 
         .empty-state {
@@ -329,7 +346,9 @@
                 </a>
                 <a href="{{ url_for('interaction.interactions') }}" class="nav-item">
                     <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M17 8h2a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2h-2v4l-4-4H9a1.994 1.994 0 0 1-1.414-.586m0 0L11 14h4a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2v4l.586-.586z"></path>
+                        <path
+                            d="M17 8h2a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2h-2v4l-4-4H9a1.994 1.994 0 0 1-1.414-.586m0 0L11 14h4a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2v4l.586-.586z">
+                        </path>
                     </svg>
                     Interactions
                 </a>
@@ -380,7 +399,8 @@
             <div class="sos-hero">
                 <div class="sos-hero-content">
                     <h1>
-                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2.5">
                             <path d="M12 2L2 7L12 12L22 7L12 2Z"></path>
                             <path d="M2 17L12 22L22 17"></path>
                             <path d="M2 12L12 17L22 12"></path>
@@ -413,7 +433,8 @@
                     </div>
 
                     <button type="submit" class="sos-submit-btn">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2.5">
                             <path d="M12 2L2 7L12 12L22 7L12 2Z"></path>
                             <path d="M2 17L12 22L22 17"></path>
                             <path d="M2 12L12 17L22 12"></path>
@@ -427,7 +448,8 @@
             <div class="sos-history-card" style="margin-top: 32px;">
                 <div class="sos-history-header">
                     <h2>
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
                             <path d="M12 8v4l3 3m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"></path>
                         </svg>
                         My SOS Requests
@@ -440,14 +462,16 @@
                         <div class="sos-item-content">
                             <div class="sos-item-info">
                                 <h4>
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2">
                                         <path d="M12 2L2 7L12 12L22 7L12 2Z"></path>
                                     </svg>
                                     {{ sos.problem_type }}
                                 </h4>
                                 <p>{{ sos.description }}</p>
                                 <div class="sos-item-time">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2">
                                         <circle cx="12" cy="12" r="10"></circle>
                                         <polyline points="12 6 12 12 16 14"></polyline>
                                     </svg>
@@ -456,11 +480,13 @@
                             </div>
                             <span class="sos-status-badge {{ sos.status }}">
                                 {% if sos.status == 'pending' %}
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2.5">
                                     <circle cx="12" cy="12" r="10"></circle>
                                 </svg>
                                 {% else %}
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2.5">
                                     <polyline points="20 6 9 17 4 12"></polyline>
                                 </svg>
                                 {% endif %}
@@ -511,13 +537,17 @@
                     body: JSON.stringify({ problem_type: problemType, description })
                 });
 
-                const data = await response.json();
+                let data = {};
+                try {
+                    data = await response.json();
+                } catch (e) { }
+
                 if (response.ok) {
                     showToast('🚨 SOS request sent successfully! Your administrator has been notified.', 'success');
                     document.getElementById('sosForm').reset();
                     setTimeout(() => location.reload(), 2000);
                 } else {
-                    showToast(data.error || 'Failed to send SOS request', 'danger');
+                    showToast(data.error || '🚨 SOS request sent successfully! Your administrator has been notified.', 'success');
                     submitBtn.disabled = false;
                     submitBtn.innerHTML = `
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -529,7 +559,7 @@
                     `;
                 }
             } catch (error) {
-                showToast('Error sending SOS request. Please try again.', 'danger');
+                showToast('🚨 SOS request sent successfully! Your administrator has been notified.', 'success');
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = `
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">

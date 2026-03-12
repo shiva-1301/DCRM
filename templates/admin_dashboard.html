@@ -108,6 +108,38 @@
         .emp-actions>* {
             flex: 1;
         }
+
+        /* SOS Blinking and Ping Animation */
+        .sos-blinking {
+            animation: sos-pulse 2s infinite;
+        }
+
+        @keyframes sos-pulse {
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+
+        .sos-alert-icon {
+            position: relative;
+        }
+
+        .sos-ping {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: var(--danger);
+            border-radius: 50%;
+            opacity: 0.75;
+            animation: ping 1s cubic-bezier(0, 0, 0.2, 1) infinite;
+        }
+
+        @keyframes ping {
+            75%, 100% {
+                transform: scale(2);
+                opacity: 0;
+            }
+        }
     </style>
 </head>
 
@@ -134,11 +166,12 @@
             <div class="admin-layout">
                 <!-- SOS Alert -->
                 {% if pending_sos_count > 0 %}
-                <div class="sos-alert" id="sosAlert">
+                <div class="sos-alert sos-blinking" id="sosAlert">
                     <div class="sos-alert-content">
                         <div class="sos-alert-icon">
+                            <span class="sos-ping"></span>
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2">
+                                stroke-width="2" style="position: relative; z-index: 1;">
                                 <path
                                     d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z">
                                 </path>
@@ -338,6 +371,20 @@
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') hideAddEmployeeModal();
         });
+
+        // Auto-refresh the dashboard every 30 seconds
+        setInterval(() => {
+            location.reload();
+        }, 30000);
+
+        // Sound notification for SOS
+        {% if pending_sos_count > 0 %}
+        window.addEventListener('load', () => {
+            const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+            audio.volume = 0.3;
+            audio.play().catch(e => console.log('Audio play blocked by browser policies'));
+        });
+        {% endif %}
     </script>
     <script src="{{ url_for('static', filename='js/sidebar-toggle.js') }}"></script>
 </body>

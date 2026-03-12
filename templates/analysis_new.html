@@ -295,6 +295,20 @@
             opacity: 0.6;
             cursor: not-allowed;
         }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 
@@ -311,7 +325,7 @@
 
                 <!-- Upload Section -->
                 <div class="upload-card" id="uploadSection">
-                    <div class="upload-zone" id="uploadZone">
+                    <div class="upload-zone" id="dropZone">
                         <input type="file" id="fileInput" accept=".csv" style="display: none;">
                         <div style="font-size: 4rem; margin-bottom: 1rem;">📁</div>
                         <p style="font-size: 1.125rem; font-weight: 600; margin-bottom: 0.5rem;">Drag & drop CSV file
@@ -327,8 +341,14 @@
                     </div>
                 </div>
 
+                <!-- Loading Overlay -->
+                <div id="loadingOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; flex-direction: column; align-items: center; justify-content: center; color: white;">
+                    <div class="spinner" style="width: 50px; height: 50px; border: 5px solid #f3f3f3; border-top: 5px solid #667eea; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                    <p style="margin-top: 1rem; font-weight: 600;">Analyzing Data...</p>
+                </div>
+
                 <!-- Results Section -->
-                <div id="resultsSection" style="display: none;">
+                <div id="resultsCard" style="display: none;">
                     <div class="results-card">
                         <div class="prediction-header">
                             <h2>Analysis Results</h2>
@@ -452,7 +472,7 @@
                     </div>
                 </div>
                 <script>
-                    const dropZone = document.getElementById('dropZone');
+                    const uploadZone = document.getElementById('dropZone');
                     const fileInput = document.getElementById('fileInput');
                     const fileInfo = document.getElementById('fileInfo');
                     const fileName = document.getElementById('fileName');
@@ -461,21 +481,28 @@
                     const resultsCard = document.getElementById('resultsCard');
 
                     let selectedFile = null;
-                    let chartInstance = null;
+                    const chartInstances = {};
+
+                    // Reset zoom function
+                    function resetZoom(chartId) {
+                        if (chartInstances[chartId]) {
+                            chartInstances[chartId].resetZoom();
+                        }
+                    }
 
                     // File Selection
-                    dropZone.addEventListener('dragover', (e) => {
+                    uploadZone.addEventListener('dragover', (e) => {
                         e.preventDefault();
-                        dropZone.classList.add('dragover');
+                        uploadZone.classList.add('dragover');
                     });
 
-                    dropZone.addEventListener('dragleave', () => {
-                        dropZone.classList.remove('dragover');
+                    uploadZone.addEventListener('dragleave', () => {
+                        uploadZone.classList.remove('dragover');
                     });
 
-                    dropZone.addEventListener('drop', (e) => {
+                    uploadZone.addEventListener('drop', (e) => {
                         e.preventDefault();
-                        dropZone.classList.remove('dragover');
+                        uploadZone.classList.remove('dragover');
                         handleFile(e.dataTransfer.files[0]);
                     });
 
@@ -488,7 +515,7 @@
                             selectedFile = file;
                             fileName.textContent = file.name;
                             fileInfo.style.display = 'block';
-                            dropZone.style.display = 'none';
+                            uploadZone.style.display = 'none';
                         }
                     }
 
@@ -497,7 +524,7 @@
                         if (!selectedFile) return;
 
                         fileInfo.style.display = 'none';
-                        loadingOverlay.style.display = 'block';
+                        loadingOverlay.style.display = 'flex';
                         resultsCard.style.display = 'none';
 
                         const formData = new FormData();
@@ -527,123 +554,154 @@
 
                     function resetInterface() {
                         fileInfo.style.display = 'none';
-                        dropZone.style.display = 'block';
+                        uploadZone.style.display = 'block';
                         selectedFile = null;
                     }
 
                     function displayResults(data) {
                         resultsCard.style.display = 'block';
-                        document.getElementById('resultTimestamp').textContent = new Date().toLocaleString();
+                        currentFilePath = data.filepath;
 
                         // Set Prediction
                         const prediction = data.prediction.toLowerCase();
-                        const badge = document.getElementById('predictionBadge');
-                        badge.className = `label-value ${prediction}`;
-                        badge.textContent = data.prediction.toUpperCase();
+                        const icons = { healthy: '✅', main: '⚠️', arc: '⚡' };
+                        const colors = { healthy: '#10b981', main: '#f59e0b', arc: '#ef4444' };
 
-                        document.getElementById('mainResultText').textContent = data.prediction.toUpperCase();
-                        document.getElementById('mainConfidenceValue').textContent = data.confidence.toFixed(1);
+                        const predictionIcon = document.getElementById('predictionIcon');
+                        predictionIcon.textContent = icons[prediction] || '🔍';
+                        predictionIcon.style.color = colors[prediction];
 
-                        // Update Bars
-                        const probs = data.probabilities;
-                        updateProb('healthy', probs.healthy);
-                        updateProb('main', probs.main);
-                        updateProb('arc', probs.arc);
+                        const predictionText = document.getElementById('predictionText');
+                        predictionText.textContent = data.prediction.toUpperCase();
+                        predictionText.style.color = colors[prediction];
 
-                        function updateProb(id, val) {
-                            const pct = (val * 100).toFixed(1) + '%';
-                            document.getElementById(`${id}Prob`).textContent = pct;
-                            document.getElementById(`${id}Bar`).style.width = pct;
-                        }
+                        document.getElementById('fileNameResult').textContent = 'File: ' + data.filename;
 
-                        // Create Chart
-                        createAnalysisChart(data.graph_data);
+                        // Probabilities
+                        const probContainer = document.getElementById('probabilitiesContainer');
+                        probContainer.innerHTML = Object.entries(data.probabilities).map(([label, prob]) => `
+                            <div class="prob-item">
+                                <div style="font-weight: 600; color: #4b5563;">${label.toUpperCase()}</div>
+                                <div class="prob-bar-bg">
+                                    <div class="prob-bar-fill" style="width: ${prob * 100}%; background-color: ${colors[label] || '#667eea'};"></div>
+                                </div>
+                                <div style="font-weight: 700; text-align: right;">${(prob * 100).toFixed(1)}%</div>
+                            </div>
+                        `).join('');
+
+                        // Create Graphs
+                        const graphData = data.graph_data;
+                        const timeLabels = graphData.time;
+
+                        createCombinedChart(timeLabels, graphData);
+                        createChart('coilChart', 'Coil Current (A)', timeLabels, graphData.coil_current, '#3b82f6');
+                        createChart('resistanceChart', 'Resistance (µΩ)', timeLabels, graphData.resistance, '#8b5cf6');
+                        createChart('dcrmChart', 'DCRM Current (A)', timeLabels, graphData.dcrm_current, '#10b981');
+                        createChart('travelChart', 'Contact Travel (mm)', timeLabels, graphData.contact_travel, '#f59e0b');
                     }
 
-                    function createAnalysisChart(graphData) {
-                        const ctx = document.getElementById('analysisChart').getContext('2d');
-
-                        if (chartInstance) {
-                            chartInstance.destroy();
-                        }
-
-                        const colors = {
-                            coil: '#2563EB',
-                            resistance: '#8B5CF6',
-                            dcrm: '#10B981',
-                            travel: '#F59E0B'
-                        };
-
-                        chartInstance = new Chart(ctx, {
+                    function createCombinedChart(labels, graphData) {
+                        const ctx = document.getElementById('combinedChart').getContext('2d');
+                        if (chartInstances['combinedChart']) chartInstances['combinedChart'].destroy();
+                        
+                        chartInstances['combinedChart'] = new Chart(ctx, {
                             type: 'line',
                             data: {
-                                labels: graphData.time,
+                                labels: labels,
                                 datasets: [
-                                    {
-                                        label: 'Coil Current (A)',
-                                        data: graphData.coil_current,
-                                        borderColor: colors.coil,
-                                        backgroundColor: 'transparent',
-                                        borderWidth: 2,
-                                        pointRadius: 0,
-                                        tension: 0.1,
-                                        yAxisID: 'y'
-                                    },
-                                    {
-                                        label: 'Resistance (µΩ)',
-                                        data: graphData.resistance,
-                                        borderColor: colors.resistance,
-                                        backgroundColor: 'transparent',
-                                        borderWidth: 2,
-                                        pointRadius: 0,
-                                        tension: 0.1,
-                                        yAxisID: 'y1'
-                                    },
-                                    {
-                                        label: 'DCRM Current (A)',
-                                        data: graphData.dcrm_current,
-                                        borderColor: colors.dcrm,
-                                        backgroundColor: 'transparent',
-                                        borderWidth: 2,
-                                        pointRadius: 0,
-                                        tension: 0.1,
-                                        yAxisID: 'y'
-                                    },
-                                    {
-                                        label: 'Travel (mm)',
-                                        data: graphData.contact_travel,
-                                        borderColor: colors.travel,
-                                        backgroundColor: 'transparent',
-                                        borderWidth: 2,
-                                        pointRadius: 0,
-                                        tension: 0.1,
-                                        yAxisID: 'y2'
-                                    }
+                                    { label: 'Coil Current (A)', data: graphData.coil_current, borderColor: '#3b82f6', backgroundColor: 'transparent', borderWidth: 2, pointRadius: 0, tension: 0.1, yAxisID: 'y' },
+                                    { label: 'Resistance (µΩ)', data: graphData.resistance, borderColor: '#8b5cf6', backgroundColor: 'transparent', borderWidth: 2, pointRadius: 0, tension: 0.1, yAxisID: 'y1' },
+                                    { label: 'DCRM Current (A)', data: graphData.dcrm_current, borderColor: '#10b981', backgroundColor: 'transparent', borderWidth: 2, pointRadius: 0, tension: 0.1, yAxisID: 'y' },
+                                    { label: 'Contact Travel (mm)', data: graphData.contact_travel, borderColor: '#f59e0b', backgroundColor: 'transparent', borderWidth: 2, pointRadius: 0, tension: 0.1, yAxisID: 'y2' }
                                 ]
                             },
                             options: {
-                                responsive: true,
-                                maintainAspectRatio: false,
+                                responsive: true, maintainAspectRatio: false,
                                 interaction: { mode: 'index', intersect: false },
                                 plugins: {
                                     legend: { position: 'bottom', labels: { usePointStyle: true, padding: 20 } },
                                     zoom: {
-                                        zoom: {
-                                            wheel: { enabled: true },
-                                            drag: { enabled: true, backgroundColor: 'rgba(37, 99, 235, 0.1)' },
-                                            mode: 'x'
-                                        },
+                                        zoom: { wheel: { enabled: true }, drag: { enabled: true, backgroundColor: 'rgba(102, 126, 234, 0.1)' }, mode: 'x' },
                                         pan: { enabled: true, mode: 'x' }
                                     }
                                 },
                                 scales: {
-                                    x: { grid: { display: false }, ticks: { maxRotation: 0, font: { size: 10 } } },
-                                    y: { position: 'left', title: { display: true, text: 'Current (A)' }, grid: { color: '#F1F5F9' } },
-                                    y1: { position: 'right', display: true, title: { display: true, text: 'Resistance' }, grid: { display: false } },
+                                    x: { grid: { display: false } },
+                                    y: { position: 'left', title: { display: true, text: 'Current (A)' } },
+                                    y1: { position: 'right', title: { display: true, text: 'Resistance' }, grid: { display: false } },
                                     y2: { position: 'right', display: false }
                                 }
                             }
                         });
+                    }
+
+                    function createChart(canvasId, title, labels, data, color) {
+                        const ctx = document.getElementById(canvasId).getContext('2d');
+                        if (chartInstances[canvasId]) chartInstances[canvasId].destroy();
+
+                        chartInstances[canvasId] = new Chart(ctx, {
+                            type: 'line',
+                            data: {
+                                labels: labels,
+                                datasets: [{ label: title, data: data, borderColor: color, backgroundColor: color + '20', borderWidth: 2, pointRadius: 0, tension: 0.1 }]
+                            },
+                            options: {
+                                responsive: true, maintainAspectRatio: false,
+                                plugins: {
+                                    zoom: {
+                                        zoom: { wheel: { enabled: true }, drag: { enabled: true, backgroundColor: 'rgba(0,0,0,0.05)' }, mode: 'x' },
+                                        pan: { enabled: true, mode: 'x' }
+                                    }
+                                },
+                                scales: { x: { grid: { display: false } }, y: { beginAtZero: false } }
+                            }
+                        });
+                    }
+
+                    // Validation & Retraining
+                    let selectedCorrectLabel = null;
+                    let currentFilePath = null;
+
+                    function handleCorrect() {
+                        alert('✅ Prediction confirmed. Thank you for your feedback!');
+                    }
+
+                    function handleIncorrect() {
+                        document.getElementById('correctionSection').style.display = 'block';
+                        document.getElementById('correctionSection').scrollIntoView({ behavior: 'smooth' });
+                    }
+
+                    function selectLabel(label) {
+                        selectedCorrectLabel = label;
+                        document.querySelectorAll('.label-option').forEach(opt => opt.classList.remove('selected'));
+                        event.currentTarget.classList.add('selected');
+                        document.getElementById('retrainBtn').disabled = false;
+                    }
+
+                    async function handleRetrain() {
+                        const btn = document.getElementById('retrainBtn');
+                        btn.disabled = true;
+                        btn.textContent = '⏳ Retraining...';
+
+                        try {
+                            const response = await fetch('/api/retrain', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ filepath: currentFilePath, correct_label: selectedCorrectLabel })
+                            });
+
+                            if (response.ok) {
+                                alert('✅ Model updated with feedback.');
+                                document.getElementById('correctionSection').style.display = 'none';
+                            } else {
+                                alert('❌ Retraining failed.');
+                            }
+                        } catch (e) {
+                            alert('❌ Error: ' + e.message);
+                        } finally {
+                            btn.disabled = false;
+                            btn.textContent = '🔄 Retrain Model with Correct Label';
+                        }
                     }
                 </script>
                 <script src="{{ url_for('static', filename='js/sidebar-toggle.js') }}"></script>

@@ -21,6 +21,14 @@ Electrical contacts in circuit breakers and switchgear degrade over time. DCRM (
 
 ### Key Features Implemented
 - **CSV Upload & Prediction** — Upload a DCRM CSV, receive an instant ML classification
+- **Model Feedback**: Ensured the validation and retraining UI is fully connected and functional.
+
+### 🤖 Model Bootstrapping
+Resolved the "No such file or directory: 'dcrm_model.pkl'" error by generating an initial model.
+
+- **Sample Data Preparation**: Identifed sample CSV files from the `graph_plotter` directory and converted them into a bootstrap training dataset in the `data/` folder.
+- **Auto-Training**: Executed the `ml/training/train_model.py` script to generate the initial `dcrm_model.pkl` and `dcrm_scaler.pkl`.
+- **System Restoration**: Deployed the generated model files to the project root, enabling the predictive analysis feature.
 - **Model Retraining** — Validate / correct predictions; the model retrains live with the new sample
 - **Persistent Dataset** — Training data is saved to `dcrm_training_dataset.npz` and survives server restarts
 - **Role-Based Access** — Admin vs Employee roles with separate views
@@ -176,10 +184,12 @@ retrain-x/
 ├── templates/                  — Jinja2 HTML templates
 ├── static/
 │   ├── css/                    — dashboard.css, style.css
-│   └── js/                     — dashboard.js, script.js, sidebar-toggle.js
-├── uploads/                    — Uploaded CSV files (persisted to disk)
-├── data/                       — Initial training CSVs (auto-loaded on first start)
-├── graph_plotter/              — Standalone React/Vite SPA
+│   └── js/                     — dashboard.js, script.js,- [x] Verify Analysis Page functionality <!-- id: 17 -->
+- [x] Resolve Model Loading Error <!-- id: 18 -->
+    - [x] Identify bootstrap data from project files <!-- id: 19 -->
+    - [x] Create initial training dataset in `data/` folder <!-- id: 20 -->
+    - [x] Run model training script to generate `.pkl` files <!-- id: 21 -->
+    - [x] Verify backend can load the model correctly <!-- id: 22 -->
 │   ├── src/                    — React source code
 │   ├── public/                 — Static assets
 │   └── package.json            — Node.js dependencies

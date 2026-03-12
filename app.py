@@ -18,10 +18,12 @@ from database import (
     verify_password, create_user, get_all_employees, delete_user,
     save_prediction, get_user_predictions, get_all_predictions,
     save_training_log, get_user_statistics,
-    create_sos_request, get_user_sos_requests, get_all_sos_requests, resolve_sos_request,
     save_message, get_conversation, get_user_conversations, mark_messages_as_read,
     update_password
 )
+
+# Import Blueprints
+from backend.routes.sos_routes import sos_bp
 
 # Load environment variables
 load_dotenv()
@@ -31,6 +33,9 @@ app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'default_secret_key_change_me
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50MB max file size
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['DATA_FOLDER'] = 'data'
+
+# Register Blueprints
+app.register_blueprint(sos_bp)
 
 # Create folders if they don't exist
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
@@ -788,53 +793,7 @@ END OF REPORT
         return jsonify({'error': str(e)}), 500
 
 
-# ---------------------------------------------
-# SOS Routes
-# ---------------------------------------------
-@app.route('/sos')
-@login_required
-def sos_page():
-    """SOS page for employees"""
-    user_sos = get_user_sos_requests(current_user.id)
-    return render_template('sos.html', user=current_user, sos_requests=user_sos)
-
-@app.route('/admin/sos')
-@login_required
-@admin_required
-def admin_sos():
-    """Admin SOS management page"""
-    all_sos = get_all_sos_requests()
-    return render_template('admin_sos.html', user=current_user, sos_requests=all_sos)
-
-@app.route('/api/sos/create', methods=['POST'])
-@login_required
-def create_sos():
-    """Create a new SOS request"""
-    data = request.json
-    problem_type = data.get('problem_type')
-    description = data.get('description', '')
-    
-    if not problem_type:
-        return jsonify({'error': 'Problem type is required'}), 400
-    
-    sos = create_sos_request(current_user.id, problem_type, description)
-    return jsonify({'message': 'SOS request created successfully', 'sos': {
-        'id': str(sos['_id']),
-        'problem_type': sos['problem_type'],
-        'description': sos['description'],
-        'status': sos['status'],
-        'created_at': sos['created_at'].isoformat()
-    }})
-
-@app.route('/api/sos/resolve/<sos_id>', methods=['POST'])
-@login_required
-@admin_required
-def resolve_sos(sos_id):
-    """Resolve an SOS request"""
-    if resolve_sos_request(sos_id, current_user.id):
-        return jsonify({'message': 'SOS request resolved successfully'})
-    else:
-        return jsonify({'error': 'Failed to resolve SOS request'}), 400
+# SOS Routes moved to backend/routes/sos_routes.py
 
 # ---------------------------------------------
 # Dashboard Analytics Routes

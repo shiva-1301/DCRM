@@ -261,12 +261,14 @@ def get_user_statistics():
     }
 
 # SOS Functions
-def create_sos_request(user_id, problem_type, description):
+def create_sos_request(user_id, problem_type, description, severity="standard", category="other"):
     """Create a new SOS request"""
     sos_doc = {
         'user_id': user_id,
         'problem_type': problem_type,
         'description': description,
+        'severity': severity,
+        'category': category,
         'status': 'pending',  # pending, resolved
         'created_at': datetime.utcnow(),
         'resolved_at': None,
