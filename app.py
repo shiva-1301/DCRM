@@ -25,6 +25,9 @@ from database import (
 # Import Blueprints
 from backend.routes.sos_routes import sos_bp
 
+# Import ML utilities
+from ml.utils.features import extract_features
+
 # Load environment variables
 load_dotenv()
 
@@ -109,12 +112,7 @@ def load_dataset():
 # ---------------------------------------------
 def load_signature(path):
     """
-    Loads a DCRM signature CSV:
-    - Skips empty first row (header is line 2)
-    - Removes blank spacer columns
-    - Normalizes column names
-    - Auto-detects and extracts only Channel-1 signals
-    - Flattens into a 1D feature vector
+    Loads a DCRM signature CSV and extracts statistical features.
     """
     try:
         # Read CSV with header on line 2
@@ -126,30 +124,8 @@ def load_signature(path):
         # Clean column names
         df.columns = df.columns.str.strip().str.replace("\t", " ", regex=False)
         
-        # Auto-detect channel-1 columns
-        ch1_cols = []
-        for col in df.columns:
-            name = col.lower()
-            if "coil" in name and "c1" in name:
-                ch1_cols.append(col)
-            elif "travel" in name and "t1" in name:
-                ch1_cols.append(col)
-            elif "res" in name and "ch1" in name:
-                ch1_cols.append(col)
-            elif "current" in name and "ch1" in name:
-                ch1_cols.append(col)
-        
-        # If CH1 not found → show error
-        if len(ch1_cols) == 0:
-            print(f"⚠ ERROR: No Channel-1 columns found in: {path}")
-            print(f"Detected columns: {df.columns.tolist()}")
-            return None, "No Channel-1 columns found"
-        
-        # Extract clean CH1 data
-        df = df[ch1_cols].fillna(0)
-        
-        # Convert to 1D vector
-        return df.values.flatten(), None
+        # Use centralized feature extraction
+        return extract_features(df), None
     except Exception as e:
         return None, str(e)
 
@@ -912,24 +888,16 @@ def analyze_csv_detailed():
         dcrm_current_data = []
         contact_travel_data = []
         
-        # Find Channel-1 columns
+        # Optimized Column Search
         for col in df.columns:
-            col_lower = col.lower()
-            
-            # Coil Current C1
-            if 'coil' in col_lower and 'c1' in col_lower:
+            name = col.lower()
+            if "coil" in name and "c1" in name:
                 coil_current_data = df[col].fillna(0).tolist()
-            
-            # Contact Travel T1
-            elif 'travel' in col_lower and 't1' in col_lower:
+            elif "travel" in name and "t1" in name:
                 contact_travel_data = df[col].fillna(0).tolist()
-            
-            # DCRM Resistance CH1
-            elif 'res' in col_lower and 'ch1' in col_lower:
+            elif "res" in name and "ch1" in name:
                 resistance_data = df[col].fillna(0).tolist()
-            
-            # DCRM Current CH1
-            elif 'current' in col_lower and 'ch1' in col_lower:
+            elif "current" in name and "ch1" in name:
                 dcrm_current_data = df[col].fillna(0).tolist()
         
         # Load signature for prediction
@@ -967,13 +935,14 @@ def analyze_csv_detailed():
             vector_size=len(vector)
         )
         
-        # Prepare graph data
+        # Prepare graph data (Downsample for multi-thousand point efficiency)
+        step = max(1, len(time_index) // 2000) # Aim for ~2000 points max
         graph_data = {
-            'time': time_index[:1000],  # Limit to first 1000 points for performance
-            'coil_current': coil_current_data[:1000],
-            'resistance': resistance_data[:1000],
-            'dcrm_current': dcrm_current_data[:1000],
-            'contact_travel': contact_travel_data[:1000]
+            'time': time_index[::step],
+            'coil_current': coil_current_data[::step] if coil_current_data else [],
+            'resistance': resistance_data[::step] if resistance_data else [],
+            'dcrm_current': dcrm_current_data[::step] if dcrm_current_data else [],
+            'contact_travel': contact_travel_data[::step] if contact_travel_data else []
         }
         
         return jsonify({

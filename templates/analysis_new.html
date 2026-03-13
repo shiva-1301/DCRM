@@ -112,6 +112,12 @@
             padding: 1.5rem;
             margin-bottom: 1.5rem;
             border: 1px solid #e5e7eb;
+            height: 400px; /* Force a consistent height */
+            position: relative;
+        }
+
+        .graph-card canvas {
+            max-height: 100%;
         }
 
         .graph-card h3 {
@@ -383,7 +389,9 @@
                                 <button class="reset-zoom-btn" onclick="resetZoom('combinedChart')">🔍 Reset
                                     Zoom</button>
                             </div>
-                            <canvas id="combinedChart"></canvas>
+                            <div style="height: 300px; position: relative;">
+                                <canvas id="combinedChart"></canvas>
+                            </div>
                             <p class="zoom-hint">💡 Tip: Scroll to zoom, drag to pan, or select an area to zoom in</p>
                         </div>
 
@@ -394,7 +402,9 @@
                                 <h3>⚡ Coil Current vs Time</h3>
                                 <button class="reset-zoom-btn" onclick="resetZoom('coilChart')">🔍 Reset Zoom</button>
                             </div>
-                            <canvas id="coilChart"></canvas>
+                            <div style="height: 250px; position: relative;">
+                                <canvas id="coilChart"></canvas>
+                            </div>
                             <p class="zoom-hint">💡 Scroll to zoom, drag to pan</p>
                         </div>
 
@@ -404,7 +414,9 @@
                                 <button class="reset-zoom-btn" onclick="resetZoom('resistanceChart')">🔍 Reset
                                     Zoom</button>
                             </div>
-                            <canvas id="resistanceChart"></canvas>
+                            <div style="height: 250px; position: relative;">
+                                <canvas id="resistanceChart"></canvas>
+                            </div>
                             <p class="zoom-hint">💡 Scroll to zoom, drag to pan</p>
                         </div>
 
@@ -413,7 +425,9 @@
                                 <h3>📈 DCRM Current vs Time</h3>
                                 <button class="reset-zoom-btn" onclick="resetZoom('dcrmChart')">🔍 Reset Zoom</button>
                             </div>
-                            <canvas id="dcrmChart"></canvas>
+                            <div style="height: 250px; position: relative;">
+                                <canvas id="dcrmChart"></canvas>
+                            </div>
                             <p class="zoom-hint">💡 Scroll to zoom, drag to pan</p>
                         </div>
 
@@ -422,7 +436,9 @@
                                 <h3>📏 Contact Travel vs Time</h3>
                                 <button class="reset-zoom-btn" onclick="resetZoom('travelChart')">🔍 Reset Zoom</button>
                             </div>
-                            <canvas id="travelChart"></canvas>
+                            <div style="height: 250px; position: relative;">
+                                <canvas id="travelChart"></canvas>
+                            </div>
                             <p class="zoom-hint">💡 Scroll to zoom, drag to pan</p>
                         </div>
 
@@ -609,14 +625,15 @@
                             data: {
                                 labels: labels,
                                 datasets: [
-                                    { label: 'Coil Current (A)', data: graphData.coil_current, borderColor: '#3b82f6', backgroundColor: 'transparent', borderWidth: 2, pointRadius: 0, tension: 0.1, yAxisID: 'y' },
-                                    { label: 'Resistance (µΩ)', data: graphData.resistance, borderColor: '#8b5cf6', backgroundColor: 'transparent', borderWidth: 2, pointRadius: 0, tension: 0.1, yAxisID: 'y1' },
-                                    { label: 'DCRM Current (A)', data: graphData.dcrm_current, borderColor: '#10b981', backgroundColor: 'transparent', borderWidth: 2, pointRadius: 0, tension: 0.1, yAxisID: 'y' },
-                                    { label: 'Contact Travel (mm)', data: graphData.contact_travel, borderColor: '#f59e0b', backgroundColor: 'transparent', borderWidth: 2, pointRadius: 0, tension: 0.1, yAxisID: 'y2' }
+                                    { label: 'Coil Current (A)', data: graphData.coil_current, borderColor: '#3b82f6', backgroundColor: 'transparent', borderWidth: 1.5, pointRadius: 0, tension: 0.1, yAxisID: 'y' },
+                                    { label: 'Resistance (µΩ)', data: graphData.resistance, borderColor: '#8b5cf6', backgroundColor: 'transparent', borderWidth: 1.5, pointRadius: 0, tension: 0.1, yAxisID: 'y1' },
+                                    { label: 'DCRM Current (A)', data: graphData.dcrm_current, borderColor: '#10b981', backgroundColor: 'transparent', borderWidth: 1.5, pointRadius: 0, tension: 0.1, yAxisID: 'y' },
+                                    { label: 'Contact Travel (mm)', data: graphData.contact_travel, borderColor: '#f59e0b', backgroundColor: 'transparent', borderWidth: 1.5, pointRadius: 0, tension: 0.1, yAxisID: 'y2' }
                                 ]
                             },
                             options: {
-                                responsive: true, maintainAspectRatio: false,
+                                responsive: true,
+                                maintainAspectRatio: false,
                                 interaction: { mode: 'index', intersect: false },
                                 plugins: {
                                     legend: { position: 'bottom', labels: { usePointStyle: true, padding: 20 } },
@@ -646,7 +663,8 @@
                                 datasets: [{ label: title, data: data, borderColor: color, backgroundColor: color + '20', borderWidth: 2, pointRadius: 0, tension: 0.1 }]
                             },
                             options: {
-                                responsive: true, maintainAspectRatio: false,
+                                responsive: true,
+                                maintainAspectRatio: false,
                                 plugins: {
                                     zoom: {
                                         zoom: { wheel: { enabled: true }, drag: { enabled: true, backgroundColor: 'rgba(0,0,0,0.05)' }, mode: 'x' },

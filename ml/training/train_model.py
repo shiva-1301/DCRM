@@ -18,6 +18,9 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import cross_val_score
 
+# Import ML utilities
+from ml.utils.features import extract_features
+
 DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "data")
 MODEL_DIR = os.path.join(os.path.dirname(__file__), "..", "model")
 DATASET_PATH = os.path.join(os.path.dirname(__file__), "..", "dataset", "dcrm_training_dataset.npz")
@@ -29,17 +32,17 @@ os.makedirs(os.path.dirname(DATASET_PATH), exist_ok=True)
 def load_signature(path):
     import pandas as pd
     try:
+        # Read CSV with header on line 2
         df = pd.read_csv(path, engine="python", on_bad_lines="skip", header=1)
-        df = df.dropna(axis=1, how="all")
+        
+        # Remove empty spacer columns
+        df = df.dropna(axis=1, how='all')
+        
+        # Clean column names
         df.columns = df.columns.str.strip().str.replace("\t", " ", regex=False)
-        ch1 = [c for c in df.columns if
-               ("coil" in c.lower() and "c1" in c.lower()) or
-               ("travel" in c.lower() and "t1" in c.lower()) or
-               ("res" in c.lower() and "ch1" in c.lower()) or
-               ("current" in c.lower() and "ch1" in c.lower())]
-        if not ch1:
-            return None, "No CH1 columns"
-        return df[ch1].fillna(0).values.flatten(), None
+        
+        # Use centralized feature extraction
+        return extract_features(df), None
     except Exception as e:
         return None, str(e)
 
@@ -66,9 +69,8 @@ def main():
         print("❌ No usable training data found.")
         sys.exit(1)
 
-    # Align all vectors to same length
-    max_len = max(len(v) for v in X)
-    X_aligned = [np.concatenate([v, np.zeros(max_len - len(v))]) if len(v) < max_len else v[:max_len] for v in X]
+    # Statistical features are already fixed length! No more manual alignment.
+    X_aligned = np.array(X)
 
     # Save dataset
     np.savez(DATASET_PATH, X=np.array(X_aligned, dtype=object), y=np.array(y, dtype=object))

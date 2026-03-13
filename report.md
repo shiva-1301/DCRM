@@ -29,6 +29,13 @@ Resolved the "No such file or directory: 'dcrm_model.pkl'" error by generating a
 - **Sample Data Preparation**: Identifed sample CSV files from the `graph_plotter` directory and converted them into a bootstrap training dataset in the `data/` folder.
 - **Auto-Training**: Executed the `ml/training/train_model.py` script to generate the initial `dcrm_model.pkl` and `dcrm_scaler.pkl`.
 - **System Restoration**: Deployed the generated model files to the project root, enabling the predictive analysis feature.
+
+### 📈 Accuracy & Graphing Improvements
+Resolved "Always Healthy" predictions and empty/flat graphs.
+
+- **Statistical Feature Engineering**: Replaced unstable raw data flattening with 24 robust statistical features (mean, std, peak-time, IQR) per test.
+- **Enhanced Plotting**: Replaced the 1000-point limit with smart downsampling (~2000 points across the entire file), ensuring no critical events are missed.
+- **Robust Column Mapping**: Improved detection of Channel-1 signals to handle varying CSV headers and formats.
 - **Model Retraining** — Validate / correct predictions; the model retrains live with the new sample
 - **Persistent Dataset** — Training data is saved to `dcrm_training_dataset.npz` and survives server restarts
 - **Role-Based Access** — Admin vs Employee roles with separate views
@@ -184,9 +191,9 @@ retrain-x/
 ├── templates/                  — Jinja2 HTML templates
 ├── static/
 │   ├── css/                    — dashboard.css, style.css
-│   └── js/                     — dashboard.js, script.js,- [x] Verify Analysis Page functionality <!-- id: 17 -->
-- [x] Resolve Model Loading Error <!-- id: 18 -->
-    - [x] Identify bootstrap data from project files <!-- id: 19 -->
+│   └── js/                     — dashboard.js, script.js,    - [x] Update `train_model.py` to use statistical features <!-- id: 27 -->
+    - [x] Retrain model with expanded features <!-- id: 28 -->
+    - [x] Verify graph rendering on Analysis page <!-- id: 29 -->
     - [x] Create initial training dataset in `data/` folder <!-- id: 20 -->
     - [x] Run model training script to generate `.pkl` files <!-- id: 21 -->
     - [x] Verify backend can load the model correctly <!-- id: 22 -->
