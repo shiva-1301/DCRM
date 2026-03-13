@@ -11,6 +11,7 @@ import glob
 from datetime import datetime
 import json
 from dotenv import load_dotenv
+import requests
 
 # Import database functions
 from database import (
@@ -19,7 +20,7 @@ from database import (
     save_prediction, get_user_predictions, get_all_predictions,
     save_training_log, get_user_statistics,
     save_message, get_conversation, get_user_conversations, mark_messages_as_read,
-    update_password
+    update_password, predictions_collection, get_all_sos_requests
 )
 
 # Import Blueprints
@@ -354,6 +355,36 @@ def reports_page():
     
     return render_template('reports.html', reports=reports, stats=stats, user=current_user)
 
+@app.route('/report-details/<report_id>')
+@login_required
+def report_details(report_id):
+    """Detailed view for a single report"""
+    from bson.objectid import ObjectId
+    try:
+        # Get prediction from database
+        report = predictions_collection.find_one({'_id': ObjectId(report_id)})
+        
+        if not report:
+            flash('Report not found', 'danger')
+            return redirect(url_for('reports_page'))
+        
+        # Verify user owns this prediction
+        if report['user_id'] != current_user.id:
+            flash('Unauthorized access', 'danger')
+            return redirect(url_for('reports_page'))
+        
+        # Calculate confidence if not present
+        if 'confidence' not in report:
+            probs = report.get('probabilities', {})
+            pred_class = report.get('prediction')
+            report['confidence'] = float(probs.get(pred_class, 0.0)) * 100
+            
+        return render_template('report_details_page.html', report=report, user=current_user)
+        
+    except Exception as e:
+        flash(f'Error retrieving report: {str(e)}', 'danger')
+        return redirect(url_for('reports_page'))
+
 @app.route('/settings')
 @login_required
 def settings_page():
@@ -665,11 +696,13 @@ def get_user_reports():
 @app.route('/api/report/download/<report_id>', methods=['GET'])
 @login_required
 def download_report_pdf(report_id):
-    """Generate and download PDF report for a specific prediction"""
+    """Generate and download a professional PDF report for a specific prediction"""
+    from bson.objectid import ObjectId
+    from fpdf import FPDF
+    from io import BytesIO
+    from flask import send_file
+    
     try:
-        from bson.objectid import ObjectId
-        from io import BytesIO
-        
         # Get prediction from database
         prediction = predictions_collection.find_one({'_id': ObjectId(report_id)})
         
@@ -680,93 +713,109 @@ def download_report_pdf(report_id):
         if prediction['user_id'] != current_user.id:
             return jsonify({'error': 'Unauthorized'}), 403
         
-        # Create a simple text-based report (you can enhance this with a PDF library like ReportLab)
-        report_content = f"""
-DCRM TEST REPORT
-{'=' * 60}
-
-Report ID: {report_id}
-Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
-User: {current_user.full_name or current_user.username}
-
-{'=' * 60}
-FILE INFORMATION
-{'=' * 60}
-
-Filename: {prediction['filename']}
-Test Date: {prediction['timestamp'].strftime('%Y-%m-%d %H:%M:%S')}
-Vector Size: {prediction['vector_size']} features
-
-{'=' * 60}
-PREDICTION RESULTS
-{'=' * 60}
-
-Classification: {prediction['prediction'].upper()}
-
-Confidence Levels:
-"""
+        # Create PDF
+        pdf = FPDF()
+        pdf.add_page()
         
-        # Add probabilities
+        # Header
+        pdf.set_font("Helvetica", 'B', 24)
+        pdf.set_text_color(31, 41, 55)
+        pdf.cell(0, 20, "DCRM Diagnostic Report", ln=True, align='C')
+        
+        pdf.set_font("Helvetica", 'I', 10)
+        pdf.cell(0, 10, f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", ln=True, align='C')
+        pdf.ln(10)
+        
+        # Section Header Style
+        def section_header(title):
+            pdf.set_font("Helvetica", 'B', 14)
+            pdf.set_fill_color(243, 244, 246)
+            pdf.set_text_color(55, 65, 81)
+            pdf.cell(0, 10, f"  {title}", ln=True, fill=True)
+            pdf.ln(5)
+
+        # File Info
+        section_header("Test Information")
+        pdf.set_font("Helvetica", '', 11)
+        pdf.set_text_color(31, 41, 55)
+        pdf.cell(50, 8, "Filename:", 0)
+        pdf.cell(0, 8, str(prediction['filename']), 0, ln=True)
+        pdf.cell(50, 8, "Timestamp:", 0)
+        pdf.cell(0, 8, prediction['timestamp'].strftime('%Y-%m-%d %H:%M:%S'), 0, ln=True)
+        pdf.cell(50, 8, "Features Analyzed:", 0)
+        pdf.cell(0, 8, f"{prediction['vector_size']} parameters", 0, ln=True)
+        pdf.ln(10)
+        
+        # Prediction Results
+        section_header("Analysis Results")
+        
+        # Big status box
+        status = prediction['prediction'].upper()
+        if status == 'HEALTHY':
+            pdf.set_fill_color(209, 250, 229)
+            pdf.set_text_color(6, 95, 70)
+        elif status == 'MAIN':
+            pdf.set_fill_color(254, 243, 199)
+            pdf.set_text_color(146, 64, 14)
+        else:
+            pdf.set_fill_color(254, 226, 226)
+            pdf.set_text_color(153, 27, 27)
+            
+        pdf.set_font("Helvetica", 'B', 16)
+        pdf.cell(0, 15, f"DIAGNOSIS: {status}", ln=True, fill=True, align='C')
+        pdf.ln(10)
+        
+        # Probabilities Table
+        pdf.set_font("Helvetica", 'B', 12)
+        pdf.set_text_color(55, 65, 81)
+        pdf.cell(95, 10, "Classification Category")
+        pdf.cell(95, 10, "Confidence Level")
+        pdf.ln()
+        
+        pdf.set_font("Helvetica", '', 11)
         for label, prob in sorted(prediction['probabilities'].items(), key=lambda x: x[1], reverse=True):
-            report_content += f"  {label.capitalize()}: {prob * 100:.2f}%\n"
+            pdf.cell(95, 8, label.capitalize(), border='B')
+            pdf.cell(95, 8, f"{prob * 100:.1f}%", border='B')
+            pdf.ln()
+        pdf.ln(10)
         
-        report_content += f"""
-{'=' * 60}
-INTERPRETATION
-{'=' * 60}
-
-"""
+        # Recommendations
+        section_header("Field Recommendations")
+        pdf.set_font("Helvetica", '', 11)
+        pdf.set_text_color(31, 41, 55)
         
-        # Add interpretation based on prediction
-        if prediction['prediction'] == 'healthy':
-            report_content += """Status: HEALTHY
-The DCRM measurements indicate normal contact resistance with no faults
-detected. The system shows stable measurements across all channels.
-This means your equipment is functioning properly.
-
-Recommendation: Continue regular monitoring.
-"""
-        elif prediction['prediction'] == 'main':
-            report_content += """Status: MAIN CONTACT FAULT
-Main contact fault indicates issues with the primary contact mechanism.
-This could be due to wear, contamination, or mechanical problems.
-
-Recommendation: Immediate inspection is recommended. Check the contact
-surfaces and consider maintenance.
-"""
-        else:  # arc
-            report_content += """Status: ARC FAULT DETECTED
-Arc fault detection indicates electrical arcing in the contact system.
-This is a serious condition that requires immediate attention to prevent
-equipment damage and safety hazards.
-
-Recommendation: IMMEDIATE ACTION REQUIRED. Contact your supervisor and
-schedule emergency maintenance.
-"""
+        if status == 'HEALTHY':
+            rec = "The system is performing within normal operational parameters. No immediate action is required. Continue following your standard periodic maintenance schedule."
+        elif status == 'MAIN':
+            rec = "Detected anomalies in main contact resistance. This baseline deviation suggests early-stage contact degradation or misalignment. IMMEDIATE INSPECTION of primary contact surfaces is recommended during the next maintenance window."
+        else:
+            rec = "CRITICAL: Signature indicates high-frequency resistance fluctuations characteristic of arc faults. HIGH RISK OF FAILURE. Immediate interrupter inspection required. DO NOT return to service until verified."
+            
+        pdf.multi_cell(0, 6, rec)
         
-        report_content += f"""
-{'=' * 60}
-SYSTEM INFORMATION
-{'=' * 60}
-
-Model: Random Forest Classifier
-Features Analyzed: Channel-1 DCRM Measurements
-Classification Classes: Healthy, Main Fault, Arc Fault
-
-{'=' * 60}
-END OF REPORT
-{'=' * 60}
-"""
+        # Footer
+        pdf.set_y(-25)
+        pdf.set_font("Helvetica", 'I', 8)
+        pdf.set_text_color(156, 163, 175)
+        pdf.cell(0, 10, "Auto-generated by DCRM AI Diagnostic Engine. Use as supporting tool for field decisions.", align='C')
         
-        # Create response with text file (can be enhanced to PDF)
-        response = make_response(report_content)
-        response.headers['Content-Type'] = 'text/plain'
-        response.headers['Content-Disposition'] = f'attachment; filename=DCRM_Report_{report_id}.txt'
+        # Output PDF to BytesIO buffer
+        pdf_buffer = BytesIO(bytes(pdf.output()))
+        pdf_buffer.seek(0)
         
-        return response
+        return send_file(
+            pdf_buffer,
+            mimetype='application/pdf',
+            as_attachment=True,
+            download_name=f'DCRM_Report_{report_id}.pdf'
+        )
         
     except Exception as e:
+        print(f"PDF Error: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
+
 
 
 # SOS Routes moved to backend/routes/sos_routes.py
@@ -967,125 +1016,72 @@ def field_advisor():
     """Field Advisor Chatbot page"""
     return render_template('field_advisor.html', user=current_user)
 
+# Load DCRM technical info for chatbot grounding
+DCRM_INFO_CONTENT = ""
+try:
+    info_path = os.path.join('data', 'dcrm_info.md')
+    if os.path.exists(info_path):
+        # Explicitly loading as UTF-8 with replacement for any stray bytes
+        with open(info_path, 'r', encoding='utf-8', errors='replace') as f:
+            DCRM_INFO_CONTENT = f.read()
+            print("📖 DCRM Technical Info loaded for Field Advisor")
+except Exception as e:
+    print(f"⚠ Could not load dcrm_info.md: {e}")
+
 @app.route('/api/chatbot/ask', methods=['POST'])
 @login_required
 def chatbot_ask():
-    """Chatbot API endpoint - handles any question intelligently"""
+    """Chatbot API endpoint - uses Groq LLM grounded in DCRM knowledge"""
     data = request.json
     question = data.get('question', '').strip()
-    selected_text = data.get('selected_text', '').strip()
     
     if not question:
         return jsonify({'error': 'Question is required'}), 400
     
-    question_lower = question.lower()
-    response = ""
-    
-    # Use selected text context if available
-    context = f" You mentioned: '{selected_text}'." if selected_text else ""
-    
-    # Greetings
-    if any(word in question_lower for word in ['hello', 'hi', 'hey', 'greetings', 'good morning', 'good afternoon', 'good evening']):
-        response = f"Hello! I'm your Field Advisor chatbot.{context} I'm here to help you with any questions about the DCRM system, troubleshooting, or general inquiries. How can I assist you today?"
-    
-    # DCRM-specific technical questions
-    elif 'healthy' in question_lower or ('normal' in question_lower and 'reading' in question_lower):
-        response = f"A healthy DCRM reading indicates normal contact resistance with no faults detected. The system shows stable measurements across all channels.{context} This means your equipment is functioning properly."
-    elif 'main' in question_lower and ('contact' in question_lower or 'fault' in question_lower):
-        response = f"Main contact fault indicates issues with the primary contact mechanism. This could be due to wear, contamination, or mechanical problems. Immediate inspection is recommended.{context} You should check the contact surfaces and consider maintenance."
-    elif 'arc' in question_lower or 'arcing' in question_lower:
-        response = f"Arc fault detection indicates electrical arcing in the contact system. This is a serious condition that requires immediate attention to prevent equipment damage and safety hazards.{context} Please take immediate action and contact your supervisor if needed."
-    elif 'dcrm' in question_lower:
-        response = f"DCRM (Dynamic Contact Resistance Measurement) is a system for detecting faults in electrical contacts. It analyzes measurements to classify contacts as healthy, main fault, or arc fault.{context} The system uses machine learning to provide accurate predictions."
-    
-    # File and upload questions
-    elif any(word in question_lower for word in ['upload', 'file', 'csv', 'how to upload']):
-        response = f"To upload a file: 1) Click 'Browse Files' or drag and drop your CSV file, 2) Click 'Predict' to analyze, 3) Review the results and validate the prediction.{context} Make sure your CSV file contains Channel-1 data columns."
-    elif 'format' in question_lower or 'structure' in question_lower:
-        response = f"Your CSV file should have Channel-1 columns including: Coil Current C1, Contact Travel T1, DCRM Res CH1, and DCRM Current CH1.{context} The header should be on line 2 of the CSV file."
-    
-    # Prediction and results questions
-    elif any(word in question_lower for word in ['prediction', 'result', 'classify', 'what does it mean']):
-        response = f"Predictions show the probability of each fault type (healthy, main, arc). The system uses machine learning to classify your DCRM measurements.{context} Always validate predictions for accuracy by clicking 'Correct' or 'Incorrect'."
-    elif 'confidence' in question_lower or 'probability' in question_lower:
-        response = f"Confidence levels show how certain the system is about its prediction. Higher confidence (above 80%) indicates more reliable results.{context} Lower confidence may require manual verification."
-    
-    # Training and model questions
-    elif any(word in question_lower for word in ['retrain', 'training', 'model', 'improve']):
-        response = f"If a prediction is incorrect, click 'Incorrect' and select the correct label. The system will automatically retrain the model with your correction to improve accuracy.{context} This helps the system learn from your expertise."
-    
-    # SOS and help questions
-    elif any(word in question_lower for word in ['sos', 'problem', 'issue', 'help', 'stuck', 'error']):
-        response = f"If you're experiencing problems, you can: 1) Send an SOS request to your administrator via the SOS Request page, 2) Chat with other employees through the Interactions page, or 3) Ask me more questions here.{context} I'm here to help resolve your issues!"
-    elif 'cannot' in question_lower or "can't" in question_lower or 'unable' in question_lower:
-        response = f"If you're unable to resolve something, you can: 1) Use the Interactions page to chat with other employees for help, 2) Send an SOS request to your admin, or 3) Check the User Guide for step-by-step instructions.{context} Don't hesitate to ask for assistance!"
-    
-    # Interaction and communication questions
-    elif any(word in question_lower for word in ['interact', 'chat', 'message', 'employee', 'talk to', 'contact employee']):
-        response = f"You can interact with other employees through the Interactions page. Select an employee from the list to start a conversation and get help with issues you're unable to resolve yourself.{context} This is great for collaboration and problem-solving."
-    
-    # Feature questions
-    elif any(word in question_lower for word in ['feature', 'what can', 'what does', 'capabilities']):
-        response = f"The DCRM system offers several features: 1) File upload and prediction, 2) SOS requests for admin help, 3) Field Advisor chatbot (that's me!), 4) Employee interactions for collaboration, and 5) User guide for instructions.{context} Explore the navigation menu to access all features."
-    
-    # History and tracking questions
-    elif any(word in question_lower for word in ['history', 'past', 'previous', 'track']):
-        response = f"You can view your prediction history in the 'My History' page. It shows all your past predictions with details like filename, fault type, confidence, and timestamp.{context} This helps you track your work and patterns."
-    
-    # General "what" questions
-    elif question_lower.startswith('what'):
-        if 'is' in question_lower or 'are' in question_lower:
-            response = f"Based on your question '{question}', I can help explain various aspects of the DCRM system.{context} Could you be more specific? For example: 'What is a healthy reading?' or 'What are the fault types?'"
-        else:
-            response = f"I understand you're asking: '{question}'.{context} I can help explain DCRM concepts, system features, how to use different functions, or troubleshoot issues. Could you provide more specific details?"
-    
-    # General "how" questions
-    elif question_lower.startswith('how'):
-        response = f"To answer your question about '{question}', I'd be happy to help!{context} I can explain: how to upload files, how predictions work, how to use features, how to resolve issues, or how to get help. Could you be more specific?"
-    
-    # General "why" questions
-    elif question_lower.startswith('why'):
-        response = f"That's a great question! '{question}'.{context} I can help explain the reasoning behind DCRM system features, fault classifications, or processes. Could you provide more context so I can give you a detailed answer?"
-    
-    # General "when" or "where" questions
-    elif question_lower.startswith(('when', 'where')):
-        response = f"Regarding your question '{question}',{context} I can help you find where features are located in the system or when to use certain functions. For specific locations, check the navigation sidebar. Could you be more specific?"
-    
-    # Thanks and appreciation
-    elif any(word in question_lower for word in ['thank', 'thanks', 'appreciate', 'grateful']):
-        response = "You're welcome! I'm glad I could help. If you have any more questions about the DCRM system, troubleshooting, or anything else, feel free to ask. I'm here to assist you!"
-    
-    # Goodbye
-    elif any(word in question_lower for word in ['bye', 'goodbye', 'see you', 'farewell', 'later']):
-        response = "Goodbye! Feel free to come back anytime if you need assistance. Have a great day and stay safe!"
-    
-    # Questions about the chatbot itself
-    elif any(word in question_lower for word in ['who are you', 'what are you', 'your name', 'yourself']):
-        response = "I'm the Field Advisor chatbot, your intelligent assistant for the DCRM system. I can help you with questions about DCRM measurements, system features, troubleshooting, file uploads, predictions, and general guidance. I'm here 24/7 to assist you!"
-    
-    # Default intelligent response
-    else:
-        # Try to provide a helpful response based on keywords
-        keywords_found = []
-        if any(word in question_lower for word in ['system', 'application', 'software']):
-            keywords_found.append("the DCRM system")
-        if any(word in question_lower for word in ['work', 'function', 'operate']):
-            keywords_found.append("how things work")
-        if any(word in question_lower for word in ['problem', 'issue', 'trouble']):
-            keywords_found.append("problem-solving")
+    api_key = os.getenv("GROQ_API_KEY")
+    if not api_key:
+        return jsonify({'response': "I'm having trouble connecting to my brain (API key missing). Please contact the administrator."})
+
+    try:
+        # System prompt to focus the LLM as a Field Advisor
+        system_prompt = (
+            "You are the 'Field Advisor', an expert assistant for the DCRM (Dynamic Contact Resistance Measurement) system. "
+            "Your goal is to help field engineers troubleshoot issues, understand measurements, and use the DCRM platform effectively. "
+            "Use the provided technical reference documentation to answer questions accurately. "
+            "If the information is not in the documentation, use your general knowledge but prioritize the documentation. "
+            "Be professional, concise, and technically precise.\n\n"
+            f"TECHNICAL DOCUMENTATION:\n{DCRM_INFO_CONTENT}"
+        )
+
+        response = requests.post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json"
+            },
+            json={
+                "model": "llama-3.3-70b-versatile",
+                "messages": [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": question}
+                ],
+                "temperature": 0.2,
+                "max_tokens": 1024
+            },
+            timeout=15
+        )
         
-        if keywords_found:
-            response = f"I understand you're asking about '{question}'.{context} I can help you with {', '.join(keywords_found)}. "
+        if response.status_code == 200:
+            result = response.json()
+            answer = result['choices'][0]['message']['content']
+            return jsonify({'response': answer})
         else:
-            response = f"I understand you're asking: '{question}'.{context} "
-        
-        response += "As your Field Advisor, I can help with:\n\n" \
-                   "• DCRM system questions (fault types, predictions, file uploads)\n" \
-                   "• How to use system features and navigate the interface\n" \
-                   "• Troubleshooting and problem-solving\n" \
-                   "• General guidance and support\n" \
-                   "• Understanding results and predictions\n\n" \
-                   "Could you provide more specific details about what you'd like to know? I'm here to help!"
+            print(f"Groq API Error: {response.status_code} - {response.text}")
+            return jsonify({'response': "I'm sorry, I'm experiencing some technical difficulties. Please try again in a moment."})
+            
+    except Exception as e:
+        print(f"Chatbot Error: {e}")
+        return jsonify({'response': "I encountered an error while processing your request. Please check your connection and try again."})
     
     return jsonify({'response': response})
 

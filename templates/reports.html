@@ -368,7 +368,7 @@
                 {% if reports %}
                 {% for report in reports %}
                 <div class="card report-card" data-filename="{{ report.filename|lower }}"
-                    data-diagnosis="{{ report.prediction|lower }}" data-confidence="{{ report.confidence }}"
+                    data-diagnosis="{{ report.prediction|lower }}" data-confidence="{{ report.confidence|default(0) }}"
                     data-timestamp="{{ report.timestamp.isoformat() if report.timestamp.isoformat else report.timestamp }}">
                     <div class="card-header"
                         style="padding-bottom: 12px; border-bottom: 1px solid var(--border-light);">
@@ -383,7 +383,7 @@
                     <div style="padding: 16px 0;">
                         <div class="confidence-label">
                             <span>Confidence</span>
-                            <strong>{{ "%.1f"|format(report.confidence) }}%</strong>
+                            <strong>{{ "%.1f"|format(report.confidence|default(0)) }}%</strong>
                         </div>
                         <div class="confidence-bar">
                             <div class="confidence-fill"

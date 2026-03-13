@@ -151,6 +151,7 @@ def save_prediction(user_id, filename, prediction, probabilities, vector_size):
         "filename": filename,
         "prediction": prediction,
         "probabilities": probabilities,
+        "confidence": float(probabilities.get(prediction, 0.0)) * 100,
         "vector_size": vector_size,
         "timestamp": datetime.utcnow(),
     }
@@ -160,7 +161,15 @@ def save_prediction(user_id, filename, prediction, probabilities, vector_size):
 
 
 def get_user_predictions(user_id, limit=50):
-    return list(predictions_col.find({"user_id": user_id}).sort("timestamp", DESCENDING).limit(limit))
+    predictions = list(predictions_col.find({"user_id": user_id}).sort("timestamp", DESCENDING).limit(limit))
+    for pred in predictions:
+        if 'confidence' not in pred:
+            probs = pred.get('probabilities', {})
+            pred_class = pred.get('prediction')
+            pred['confidence'] = float(probs.get(pred_class, 0.0)) * 100
+        # Add string id for template compatibility
+        pred['id'] = str(pred['_id'])
+    return predictions
 
 
 def get_all_predictions(limit=100):
@@ -176,6 +185,8 @@ def get_all_predictions(limit=100):
             "filename": p["filename"],
             "prediction": p["prediction"],
             "probabilities": p["probabilities"],
+            "confidence": p.get("confidence", float(p["probabilities"].get(p["prediction"], 0.0)) * 100),
+            "id": str(p["_id"]),
             "vector_size": p["vector_size"],
             "timestamp": p["timestamp"],
         })
