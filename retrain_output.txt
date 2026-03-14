@@ -1,0 +1,14 @@
+﻿healthy_sample.csv: 24 features, non-zero=20
+main_sample.csv: 24 features, non-zero=22
+arc_sample.csv: 24 features, non-zero=22
+
+Total samples: 3, Labels: ['healthy', 'main', 'arc']
+
+Model saved: dcrm_model.pkl
+Scaler saved: dcrm_scaler.pkl
+Scaler n_features_in_: 24
+
+=== Verification ===
+  healthy_sample.csv: predicted=healthy, expected=healthy [OK]  proba={'arc': 11.7, 'healthy': 71.3, 'main': 17.0}
+  main_sample.csv: predicted=main, expected=main [OK]  proba={'arc': 9.0, 'healthy': 18.7, 'main': 72.3}
+  arc_sample.csv: predicted=arc, expected=arc [OK]  proba={'arc': 68.7, 'healthy': 18.0, 'main': 13.3}

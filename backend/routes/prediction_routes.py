@@ -47,6 +47,89 @@ def analyze_csv():
         return jsonify({"error": str(e)}), 500
 
 
+@prediction_bp.route("/api/plot", methods=["POST"])
+@login_required
+def plot_csv():
+    import pandas as pd
+    import io
+    
+    if 'file' not in request.files:
+        return jsonify({"error": "No file part"}), 400
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({"error": "No file selected"}), 400
+    if not file.filename.endswith('.csv'):
+        return jsonify({"error": "Only CSV files are allowed"}), 400
+        
+    try:
+        # Read the file content into memory
+        file_content = file.read()
+        
+        # Try to determine the header row dynamically
+        # Some CSVs have header at line 2, some at line 5
+        content_str = file_content.decode('utf-8')
+        lines = content_str.splitlines()
+        header_idx = None
+        for i, line in enumerate(lines[:60]):  # check first 60 lines (some CSVs have ~46 rows of metadata)
+            if 'Coil Current C1' in line or 'Contact Travel T1' in line:
+                header_idx = i
+                break
+                
+        if header_idx is None:
+            return jsonify({"error": "Could not find expected column headers in CSV"}), 400
+            
+        # Parse the CSV with pandas
+        df = pd.read_csv(io.StringIO(content_str), header=header_idx)
+        
+        # Clean column names (strip whitespace)
+        df.columns = [str(col).strip() for col in df.columns]
+        
+        # Look for the active columns by calculating the variance
+        def find_active_col(prefix):
+            cols = [col for col in df.columns if prefix.lower() in col.lower()]
+            active_col = None
+            max_var = -1
+            for col in cols:
+                series = pd.to_numeric(df[col], errors='coerce').fillna(0)
+                # Compute variance to find the channel with the actual signal
+                var = series.var() 
+                if var > max_var:
+                    max_var = var
+                    active_col = col
+            return active_col if active_col else (cols[0] if cols else None)
+            
+        col_coil = find_active_col('Coil Current')
+        col_travel = find_active_col('Contact Travel')
+        col_res = find_active_col('DCRM Res')
+        col_dcrm_curr = find_active_col('DCRM Current')
+        
+        # Extract data (convert to numeric, replace NaN with 0)
+        def extract_series(col_name):
+            if col_name and col_name in df:
+                return pd.to_numeric(df[col_name], errors='coerce').fillna(0).tolist()
+            return []
+            
+        coil_current = extract_series(col_coil)
+        contact_travel = extract_series(col_travel)
+        resistance = extract_series(col_res)
+        dcrm_current = extract_series(col_dcrm_curr)
+        
+        # Generate time axis
+        time_axis = list(range(len(df)))
+        
+        return jsonify({
+            "time": time_axis,
+            "coil_current": coil_current,
+            "contact_travel": contact_travel,
+            "resistance": resistance,
+            "dcrm_current": dcrm_current
+        })
+    except Exception as e:
+        print(f"Error parsing CSV: {e}")
+        return jsonify({"error": f"Failed to parse CSV: {str(e)}"}), 500
+
+
+
 @prediction_bp.route("/api/retrain", methods=["POST"])
 @login_required
 def retrain():

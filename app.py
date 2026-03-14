@@ -25,6 +25,7 @@ from database import (
 
 # Import Blueprints
 from backend.routes.sos_routes import sos_bp
+from backend.routes.prediction_routes import prediction_bp
 
 # Import ML utilities
 from ml.utils.features import extract_features
@@ -38,8 +39,15 @@ app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50MB max file size
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['DATA_FOLDER'] = 'data'
 
+# ML paths — point to where the model files actually live
+app.config['MODEL_PATH'] = os.path.join(os.path.dirname(__file__), 'dcrm_model.pkl')
+app.config['SCALER_PATH'] = os.path.join(os.path.dirname(__file__), 'dcrm_scaler.pkl')
+app.config['DATASET_PATH'] = os.path.join(os.path.dirname(__file__), 'dcrm_training_dataset.npz')
+app.config['TRAINING_HISTORY_PATH'] = os.path.join(os.path.dirname(__file__), 'ml', 'training_history.json')
+
 # Register Blueprints
 app.register_blueprint(sos_bp)
+app.register_blueprint(prediction_bp)
 
 # Create folders if they don't exist
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
@@ -465,13 +473,21 @@ def employee_predictions(user_id):
                          predictions=predictions,
                          user=current_user)
 
+@app.route('/admin/sos')
+@login_required
+@admin_required
+def admin_sos():
+    """Admin SOS management page"""
+    all_sos = get_all_sos_requests()
+    return render_template('admin_sos.html', user=current_user, sos_requests=all_sos)
+
 # ---------------------------------------------
 # API Routes
 # ---------------------------------------------
 @app.route('/api/predict', methods=['POST'])
 @login_required
 def predict():
-    """Predict the class of uploaded CSV file"""
+    """Predict the class of uploaded CSV file using statistical features"""
     if 'file' not in request.files:
         return jsonify({'error': 'No file uploaded'}), 400
     
@@ -493,26 +509,22 @@ def predict():
         if norm_error:
             return jsonify({'error': f'Error normalizing file: {norm_error}'}), 400
         
-        # Load signature
-        vector, error = load_signature(filepath)
-        if error:
-            return jsonify({'error': f'Error loading signature: {error}'}), 400
+        # Parse CSV and extract statistical features (24 features)
+        df = pd.read_csv(filepath, engine='python', on_bad_lines='skip', header=1)
+        df = df.dropna(axis=1, how='all')
+        df.columns = df.columns.str.strip().str.replace('\t', ' ', regex=False)
+        
+        features = extract_features(df)
+        if features is None or len(features) == 0:
+            return jsonify({'error': 'Could not extract features from CSV'}), 400
         
         # Load model and scaler
         model, scaler, error = load_model_and_scaler()
         if error:
             return jsonify({'error': f'Error loading model: {error}'}), 500
-
-        # Align vector length to scaler expectation
-        target_len = getattr(scaler, "n_features_in_", None)
-        if target_len:
-            vector = align_vector_length(np.array(vector), target_len)
-        else:
-            # Fallback: use existing length without change
-            vector = np.array(vector)
         
         # Make prediction
-        vector_scaled = scaler.transform([vector])
+        vector_scaled = scaler.transform([features])
         prediction = model.predict(vector_scaled)[0]
         probabilities = model.predict_proba(vector_scaled)[0]
         
@@ -526,7 +538,7 @@ def predict():
             filename=file.filename,
             prediction=prediction,
             probabilities=prob_dict,
-            vector_size=len(vector)
+            vector_size=len(features)
         )
         
         return jsonify({
@@ -534,7 +546,7 @@ def predict():
             'probabilities': prob_dict,
             'filename': file.filename,
             'filepath': filepath,
-            'vector_size': len(vector)
+            'vector_size': len(features)
         })
     
     except Exception as e:
@@ -543,7 +555,7 @@ def predict():
 @app.route('/api/retrain', methods=['POST'])
 @login_required
 def retrain():
-    """Retrain the model with corrected label"""
+    """Retrain the model with corrected label using statistical features"""
     global X_data, y_data, training_history
     
     data = request.json
@@ -557,26 +569,23 @@ def retrain():
         return jsonify({'error': 'Invalid label. Must be healthy, main, or arc'}), 400
     
     try:
-        # Load signature
-        vector, error = load_signature(filepath)
-        if error or vector is None:
-            return jsonify({'error': f'Error loading signature: {error}'}), 400
+        # Parse CSV and extract statistical features (same as prediction)
+        df = pd.read_csv(filepath, engine='python', on_bad_lines='skip', header=1)
+        df = df.dropna(axis=1, how='all')
+        df.columns = df.columns.str.strip().str.replace('\t', ' ', regex=False)
         
-        # Determine target length from existing data
-        if len(X_data) > 0:
-            # Use the length of the first sample as reference
-            target_length = len(X_data[0])
-            # Align the new vector to match existing data
-            vector = align_vector_length(vector, target_length)
+        features = extract_features(df)
+        if features is None or len(features) == 0:
+            return jsonify({'error': 'Could not extract features from CSV'}), 400
         
         # Add corrected sample to dataset
-        X_data.append(vector)
+        X_data.append(features)
         y_data.append(correct_label)
         
         # Save updated dataset to disk
         save_dataset(X_data, y_data)
         
-        # Convert to numpy arrays with consistent shapes
+        # Convert to numpy arrays
         X_array = np.array([np.array(x) for x in X_data])
         y_array = np.array(y_data)
         
@@ -901,7 +910,7 @@ def get_dashboard_analytics():
 @app.route('/api/analyze-csv', methods=['POST'])
 @login_required
 def analyze_csv_detailed():
-    """Analyze CSV file and return detailed time-series data for graphs"""
+    """Analyze CSV file using statistical features and return time-series for graphs"""
     if 'file' not in request.files:
         return jsonify({'error': 'No file uploaded'}), 400
     
@@ -923,51 +932,23 @@ def analyze_csv_detailed():
         if norm_error:
             return jsonify({'error': f'Error normalizing file: {norm_error}'}), 400
         
-        # Read CSV for detailed analysis
-        df = pd.read_csv(filepath, engine="python", on_bad_lines="skip", header=1)
+        # Read CSV for both feature extraction and graph rendering
+        df = pd.read_csv(filepath, engine='python', on_bad_lines='skip', header=1)
         df = df.dropna(axis=1, how='all')
-        df.columns = df.columns.str.strip().str.replace("\t", " ", regex=False)
+        df.columns = df.columns.str.strip().str.replace('\t', ' ', regex=False)
         
-        # Extract time-series data for Channel 1
-        time_index = list(range(len(df)))
-        
-        # Initialize data structures
-        coil_current_data = []
-        resistance_data = []
-        dcrm_current_data = []
-        contact_travel_data = []
-        
-        # Optimized Column Search
-        for col in df.columns:
-            name = col.lower()
-            if "coil" in name and "c1" in name:
-                coil_current_data = df[col].fillna(0).tolist()
-            elif "travel" in name and "t1" in name:
-                contact_travel_data = df[col].fillna(0).tolist()
-            elif "res" in name and "ch1" in name:
-                resistance_data = df[col].fillna(0).tolist()
-            elif "current" in name and "ch1" in name:
-                dcrm_current_data = df[col].fillna(0).tolist()
-        
-        # Load signature for prediction
-        vector, error = load_signature(filepath)
-        if error:
-            return jsonify({'error': f'Error loading signature: {error}'}), 400
+        # Extract statistical features (24 features) for prediction
+        features = extract_features(df)
+        if features is None or len(features) == 0:
+            return jsonify({'error': 'Could not extract features from CSV'}), 400
         
         # Load model and scaler
         model, scaler, error = load_model_and_scaler()
         if error:
             return jsonify({'error': f'Error loading model: {error}'}), 500
-
-        # Align vector length to scaler expectation
-        target_len = getattr(scaler, "n_features_in_", None)
-        if target_len:
-            vector = align_vector_length(np.array(vector), target_len)
-        else:
-            vector = np.array(vector)
         
-        # Make prediction
-        vector_scaled = scaler.transform([vector])
+        # Make prediction using statistical features
+        vector_scaled = scaler.transform([features])
         prediction = model.predict(vector_scaled)[0]
         probabilities = model.predict_proba(vector_scaled)[0]
         
@@ -981,11 +962,29 @@ def analyze_csv_detailed():
             filename=file.filename,
             prediction=prediction,
             probabilities=prob_dict,
-            vector_size=len(vector)
+            vector_size=len(features)
         )
         
-        # Prepare graph data (Downsample for multi-thousand point efficiency)
-        step = max(1, len(time_index) // 2000) # Aim for ~2000 points max
+        # Extract time-series data for graphs
+        time_index = list(range(len(df)))
+        coil_current_data = []
+        resistance_data = []
+        dcrm_current_data = []
+        contact_travel_data = []
+        
+        for col in df.columns:
+            name = col.lower()
+            if 'coil' in name and 'c1' in name:
+                coil_current_data = df[col].fillna(0).tolist()
+            elif 'travel' in name and 't1' in name:
+                contact_travel_data = df[col].fillna(0).tolist()
+            elif 'res' in name and 'ch1' in name:
+                resistance_data = df[col].fillna(0).tolist()
+            elif 'current' in name and 'ch1' in name:
+                dcrm_current_data = df[col].fillna(0).tolist()
+        
+        # Downsample for performance
+        step = max(1, len(time_index) // 2000)
         graph_data = {
             'time': time_index[::step],
             'coil_current': coil_current_data[::step] if coil_current_data else [],
@@ -999,7 +998,7 @@ def analyze_csv_detailed():
             'probabilities': prob_dict,
             'filename': file.filename,
             'filepath': filepath,
-            'vector_size': len(vector),
+            'vector_size': len(features),
             'graph_data': graph_data,
             'data_points': len(time_index)
         })

@@ -8,10 +8,9 @@ from flask_login import current_user
 
 from .ml_service import (
     X_data, y_data, training_history,
-    load_signature, align_vector,
     train_model, save_dataset, save_training_history,
 )
-from .csv_parser_service import load_signature
+from .csv_parser_service import extract_features_from_file
 from ..database.database import save_training_log
 
 VALID_LABELS = {"healthy", "main", "arc"}
@@ -19,25 +18,21 @@ VALID_LABELS = {"healthy", "main", "arc"}
 
 def add_correction_and_retrain(filepath: str, correct_label: str) -> dict:
     """
-    Append (filepath, correct_label) to the dataset, retrain, persist.
+    Extract statistical features from the CSV, append with correct_label
+    to the dataset, retrain, and persist.
     Returns summary dict or raises RuntimeError.
     """
-    global X_data, y_data, training_history
-    # Import module-level lists directly so mutations are shared
     import backend.services.ml_service as ml_svc
 
     if correct_label not in VALID_LABELS:
         raise ValueError(f"Invalid label '{correct_label}'. Must be one of {VALID_LABELS}")
 
-    vector, err = load_signature(filepath)
-    if err or vector is None:
-        raise RuntimeError(f"CSV parse error: {err}")
+    # Extract 24 statistical features (NOT raw flattened data)
+    features, err = extract_features_from_file(filepath)
+    if err or features is None:
+        raise RuntimeError(f"Feature extraction error: {err}")
 
-    # Align to existing feature length
-    if ml_svc.X_data:
-        vector = align_vector(vector, len(ml_svc.X_data[0]))
-
-    ml_svc.X_data.append(vector)
+    ml_svc.X_data.append(features)
     ml_svc.y_data.append(correct_label)
     save_dataset(ml_svc.X_data, ml_svc.y_data)
 

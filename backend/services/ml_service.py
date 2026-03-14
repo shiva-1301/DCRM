@@ -11,7 +11,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.ensemble import RandomForestClassifier
 from typing import Tuple, Optional, List
 
-from .csv_parser_service import load_signature
+from .csv_parser_service import extract_features_from_file
 
 
 # ── In-memory state (populated on startup) ─────────────────────────────────────
@@ -66,7 +66,7 @@ def load_initial_training_data(data_folder: str) -> Tuple[list, list]:
             label = "arc"
         else:
             continue
-        vector, error = load_signature(fpath)
+        vector, error = extract_features_from_file(fpath)
         if error or vector is None or vector.size == 0:
             continue
         X.append(vector)

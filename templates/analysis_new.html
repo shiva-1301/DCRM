@@ -547,17 +547,27 @@
                         formData.append('file', selectedFile);
 
                         try {
-                            const response = await fetch('/api/analyze-csv', {
-                                method: 'POST',
-                                body: formData
-                            });
+                            // Fetch both analysis results and robust graph plotting data concurrently
+                            const [response, plotResponse] = await Promise.all([
+                                fetch('/api/analyze-csv', {
+                                    method: 'POST',
+                                    body: formData
+                                }),
+                                fetch('/api/plot', {
+                                    method: 'POST',
+                                    body: formData
+                                })
+                            ]);
 
                             const data = await response.json();
+                            const plotData = await plotResponse.json();
 
-                            if (response.ok) {
+                            if (response.ok && plotResponse.ok) {
+                                // Override the old graph_data with the robust plotData
+                                data.graph_data = plotData;
                                 displayResults(data);
                             } else {
-                                alert('Analysis Error: ' + data.error);
+                                alert('Analysis Error: ' + (data.error || plotData.error || 'Unknown error'));
                                 resetInterface();
                             }
                         } catch (error) {
