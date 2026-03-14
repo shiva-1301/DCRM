@@ -25,6 +25,11 @@ training_history.json
 # Temporary/Log files
 all_url_for.txt
 missed_url_for.txt
+debug_*.py
+debug_*.txt
+retrain_output.txt
+datasets.zip
+report.md
 
 # Uploads (user data — do not commit)
 uploads/
