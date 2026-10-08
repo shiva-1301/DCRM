@@ -1,11 +1,17 @@
 import os
+import secrets
+import warnings
 from dotenv import load_dotenv
 
 load_dotenv()
 
 
 class Config:
-    SECRET_KEY = os.getenv("SECRET_KEY", "change_me_in_production")
+    SECRET_KEY = os.getenv("SECRET_KEY") or secrets.token_hex(32)
+    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = "Lax"  # basic CSRF mitigation for form POSTs
+    SESSION_COOKIE_SECURE = os.getenv("SESSION_COOKIE_SECURE", "false").lower() == "true"
+    REMEMBER_COOKIE_HTTPONLY = True
     MAX_CONTENT_LENGTH = 50 * 1024 * 1024  # 50 MB
     UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.dirname(__file__)), "uploads")
     DATA_FOLDER = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
@@ -21,3 +27,7 @@ class Config:
     TRAINING_HISTORY_PATH = os.path.join(ML_DIR, "training_history.json")
     TEMPLATES_FOLDER = os.path.join(os.path.dirname(os.path.dirname(__file__)), "frontend", "templates")
     STATIC_FOLDER = os.path.join(os.path.dirname(os.path.dirname(__file__)), "frontend", "static")
+
+
+if not os.getenv("SECRET_KEY"):
+    warnings.warn("SECRET_KEY is not set; using a random key (sessions reset on restart).")

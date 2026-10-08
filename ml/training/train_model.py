@@ -55,11 +55,11 @@ def main():
         fn = os.path.basename(fp).lower()
         label = "healthy" if "healthy" in fn else "main" if "main" in fn else "arc" if "arc" in fn else None
         if label is None:
-            print(f"  ⚠ Skipping {fp} — no label in filename")
+            print(f"  WARNING: Skipping {fp} — no label in filename")
             continue
         vec, err = load_signature(fp)
         if err or vec is None or vec.size == 0:
-            print(f"  ⚠ Skipping {fp} — {err}")
+            print(f"  WARNING: Skipping {fp} — {err}")
             continue
         X.append(vec)
         y.append(label)

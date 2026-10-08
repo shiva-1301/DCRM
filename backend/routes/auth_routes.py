@@ -10,7 +10,12 @@ def login():
     if current_user.is_authenticated:
         return redirect(url_for("admin.dashboard" if current_user.is_admin() else "dashboard.index"))
     if request.method == "POST":
-        user = verify_password(request.form.get("username"), request.form.get("password"))
+        username = (request.form.get("username") or "").strip()
+        password = request.form.get("password") or ""
+        if not username or not password:
+            flash("Please enter both username and password.", "danger")
+            return render_template("login.html"), 400
+        user = verify_password(username, password)
         if user:
             login_user(user)
             flash(f"Welcome back, {user.full_name or user.username}!", "success")

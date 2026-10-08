@@ -136,8 +136,9 @@ def initialize_default_admin():
         user, error = create_user(admin_user, admin_email, admin_pass, role="admin", full_name="System Administrator")
         if user:
             print(f"Default admin created: {admin_user}")
-            print(f"Password: {admin_pass}")
-            print("Please change the password after first login!")
+            if not os.getenv("DEFAULT_ADMIN_PASSWORD"):
+                print("WARNING: using the built-in default admin password 'admin123'. "
+                      "Set DEFAULT_ADMIN_PASSWORD before deploying!")
         else:
             print(f"Failed to create admin: {error}")
     else:

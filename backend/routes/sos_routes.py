@@ -23,13 +23,13 @@ def sos_page():
 @login_required
 def create_sos():
     data = request.json or {}
-    problem_type = data.get("problem_type")
+    problem_type = str(data.get("problem_type") or "").strip()[:200]
     if not problem_type:
         return jsonify({"error": "problem_type is required"}), 400
-    
-    description = data.get("description", "")[:2000]
-    severity = data.get("severity", "standard")
-    category = data.get("category", "other")
+
+    description = str(data.get("description") or "").strip()[:2000]
+    severity = str(data.get("severity") or "standard").strip().lower()[:30]
+    category = str(data.get("category") or "other").strip().lower()[:50]
     
     sos = create_sos_request(
         current_user.id, 
