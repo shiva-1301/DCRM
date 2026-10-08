@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify, make_response
+from flask import Blueprint, request, jsonify, make_response, current_app
 from flask_login import login_required, current_user
 from ..services.prediction_service import run_prediction, run_analysis
 from ..services.retrain_service import add_correction_and_retrain
@@ -135,14 +135,14 @@ def plot_csv():
 def retrain():
     data = request.json or {}
     filepath = data.get("filepath")
-    label = data.get("correct_label")
+    label = str(data.get("correct_label") or "").strip().lower()
     if not filepath or not label:
         return jsonify({"error": "filepath and correct_label are required"}), 400
     # Validate that the path is inside the uploads folder (prevent path traversal)
     from flask import current_app
     upload_dir = os.path.realpath(current_app.config["UPLOAD_FOLDER"])
     real_path = os.path.realpath(filepath)
-    if not real_path.startswith(upload_dir):
+    if os.path.commonpath([upload_dir, real_path]) != upload_dir or not os.path.isfile(real_path):
         return jsonify({"error": "Invalid filepath"}), 400
     try:
         result = add_correction_and_retrain(real_path, label)
@@ -241,14 +241,15 @@ def download_report(report_id):
         content, filename = generate_text_report(report_id)
         response = make_response(content)
         response.headers["Content-Type"] = "text/plain"
-        response.headers["Content-Disposition"] = f"attachment; filename={filename}"
+        response.headers["Content-Disposition"] = f'attachment; filename="{filename}"'
         return response
     except LookupError:
         return jsonify({"error": "Report not found"}), 404
     except PermissionError:
         return jsonify({"error": "Unauthorised"}), 403
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    except Exception:
+        current_app.logger.exception("Report download failed")
+        return jsonify({"error": "Could not generate report"}), 500
 
 
 @prediction_bp.route("/analysis")

@@ -49,7 +49,7 @@ def load_dataset() -> Tuple[list, list]:
             print(f"📁 Loaded dataset: {len(X_data)} samples")
             return X_data, y_data
         except Exception as exc:
-            print(f"⚠ Error loading dataset: {exc}")
+            print(f"WARNING: Error loading dataset: {exc}")
     X_data, y_data = [], []
     return X_data, y_data
 
@@ -86,7 +86,7 @@ def align_vector(vector: np.ndarray, target_len: int) -> np.ndarray:
 def train_model(X: list, y: list) -> Tuple[Optional[object], Optional[object], Optional[str]]:
     cfg = _cfg()
     try:
-        if not X or not y:
+        if X is None or y is None or len(X) == 0 or len(y) == 0:
             return None, None, "No training data"
         scaler = StandardScaler()
         X_scaled = scaler.fit_transform(X)

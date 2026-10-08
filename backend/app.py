@@ -105,7 +105,9 @@ if __name__ == "__main__":
 
     debug = os.getenv("FLASK_ENV", "production") == "development"
     print(f"Auth: MongoDB | Debug: {debug}")
-    print("Location: http://localhost:5000")
+    host = os.getenv("HOST", "127.0.0.1")
+    port = int(os.getenv("PORT", "5000"))
+    print(f"Location: http://localhost:{port}")
     print("=" * 60)
 
-    flask_app.run(debug=debug, host="127.0.0.1", port=5000)
+    flask_app.run(debug=debug, host=host, port=port)
