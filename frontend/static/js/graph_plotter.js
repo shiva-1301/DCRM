@@ -15,7 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (dropZone) {
         dropZone.addEventListener('dragover', (e) => {
             e.preventDefault();
-            dropZone.style.borderColor = '#667eea';
+            dropZone.style.borderColor = '#4f46e5';
             dropZone.style.background = '#f3f4f6';
         });
 
@@ -133,7 +133,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 plugins: {
                     legend: { position: 'bottom', labels: { usePointStyle: true, padding: 20 } },
                     zoom: {
-                        zoom: { wheel: { enabled: true }, drag: { enabled: true, backgroundColor: 'rgba(102, 126, 234, 0.1)' }, mode: 'x' },
+                        zoom: { wheel: { enabled: true }, drag: { enabled: true, backgroundColor: 'rgba(79, 70, 229, 0.1)' }, mode: 'x' },
                         pan: { enabled: true, mode: 'x' }
                     }
                 },

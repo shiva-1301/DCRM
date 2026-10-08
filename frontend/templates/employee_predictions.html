@@ -68,6 +68,7 @@
 </head>
 
 <body>
+    <a class="skip-link" href="#main-content">Skip to content</a>
     <div class="app-wrapper">
         <!-- Sidebar -->
         <aside class="sidebar">
@@ -78,8 +79,8 @@
                     <circle cx="20" cy="20" r="4" fill="white" />
                     <defs>
                         <linearGradient id="gradient" x1="0" y1="0" x2="40" y2="40">
-                            <stop offset="0%" stop-color="#667eea" />
-                            <stop offset="100%" stop-color="#764ba2" />
+                            <stop offset="0%" stop-color="#4f46e5" />
+                            <stop offset="100%" stop-color="#7c3aed" />
                         </linearGradient>
                     </defs>
                 </svg>
@@ -139,9 +140,17 @@
                 </a>
             </div>
         </aside>
+        <!-- Sidebar Toggle Button -->
+        <button type="button" class="sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="3" y1="12" x2="21" y2="12"></line>
+                <line x1="3" y1="6" x2="21" y2="6"></line>
+                <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
+        </button>
 
         <!-- Main Content -->
-        <main class="main-content">
+        <main class="main-content" id="main-content">
             <div class="dashboard-header-simple"
                 style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
                 <div>
@@ -203,6 +212,7 @@
             </div>
         </main>
     </div>
+    <script src="{{ url_for('static', filename='js/sidebar-toggle.js') }}"></script>
 </body>
 
 </html>

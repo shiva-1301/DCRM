@@ -81,7 +81,7 @@
             font-size: 36px;
             font-weight: 800;
             margin: 8px 0;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
@@ -292,7 +292,7 @@
             width: 48px;
             height: 48px;
             border-radius: 50%;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -340,6 +340,7 @@
 </head>
 
 <body>
+    <a class="skip-link" href="#main-content">Skip to content</a>
     <div class="app-wrapper">
         <!-- Sidebar -->
         <aside class="sidebar">
@@ -350,8 +351,8 @@
                     <circle cx="20" cy="20" r="4" fill="white" />
                     <defs>
                         <linearGradient id="gradient" x1="0" y1="0" x2="40" y2="40">
-                            <stop offset="0%" stop-color="#667eea" />
-                            <stop offset="100%" stop-color="#764ba2" />
+                            <stop offset="0%" stop-color="#4f46e5" />
+                            <stop offset="100%" stop-color="#7c3aed" />
                         </linearGradient>
                     </defs>
                 </svg>
@@ -414,7 +415,7 @@
         </aside>
 
         <!-- Sidebar Toggle Button -->
-        <button class="sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()">
+        <button type="button" class="sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <line x1="3" y1="12" x2="21" y2="12"></line>
                 <line x1="3" y1="6" x2="21" y2="6"></line>
@@ -423,7 +424,7 @@
         </button>
 
         <!-- Main Content -->
-        <main class="main-content">
+        <main class="main-content" id="main-content">
             <!-- Header -->
             <div class="sos-admin-header">
                 <div class="sos-admin-header-content">
